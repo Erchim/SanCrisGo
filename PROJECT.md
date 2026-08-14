@@ -8,7 +8,7 @@ The acquisition priority is organic Google Search. A visitor should move from a 
 
 ## MVP
 
-The first product foundation consists only of documentation and a PostgreSQL schema intended for Supabase. Its core entities are:
+The product foundation consists of a PostgreSQL schema on Supabase and an initial public frontend. Its core entities are:
 
 - profiles linked to Supabase Auth;
 - places, a broad listing model covering attractions, hospitality, venues, operators, transport, and useful services;
@@ -21,14 +21,15 @@ Content uses strict pre-moderation. Staff and owners manage places and guides an
 ## Data and architecture principles
 
 - PostgreSQL migrations in `supabase/migrations` are the source of truth. Future capabilities extend the schema with new migrations rather than replacing it.
-- Supabase is the planned backend: Auth supplies identities and Storage will later hold files referenced by paths. There is no custom backend server in this phase.
+- Supabase is the backend: Auth supplies identities and Storage will later hold files referenced by paths. There is no custom backend server in this phase.
 - Essential editorial, discovery, verification, and SEO data stays in typed columns. JSONB is limited to variable opening schedules and non-critical extension metadata.
 - UUID primary keys, `timestamptz`, explicit foreign keys, modest indexes, validation constraints, and row-level security form the database baseline.
 - Flexible text categories are preferred over premature enums. Translation and media-gallery systems should be introduced only when requirements justify dedicated models.
-- Frontend framework selection is deliberately deferred. Any later frontend must render important public pages as complete static or server-rendered HTML.
+- Frontend foundation work has started with Next.js, TypeScript, and the App Router. Public content is server-first: important public routes must return useful, indexable HTML.
+- Server Components are the default. Client Components should be introduced only when a real interactive requirement needs browser-side JavaScript.
 
 ## Long-term direction and deferred work
 
 The platform may eventually connect practical information, businesses, events, transport, day trips, community, concierge experiences, promotions, and contact or booking flows. This migration does **not** authorize building all of those features.
 
-Frontend work, comments, forums, ratings, bookings, payments, business claims, advertising, AI/voice assistants, embeddings, automated recommendations, notifications, automated translation, complex media management, and production deployment are deferred until explicitly scoped. No fabricated local records should be used to fill the product.
+Additional frontend verticals, comments, forums, ratings, bookings, payments, business claims, advertising, AI/voice assistants, embeddings, automated recommendations, notifications, automated translation, complex media management, and production deployment are deferred until explicitly scoped. No fabricated local records should be used to fill the product.

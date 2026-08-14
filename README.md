@@ -12,7 +12,17 @@ The first version is intentionally small and extensible:
 - `tags` — flexible classification
 - `profiles` — application users and moderation roles
 
-The planned stack is PostgreSQL/Supabase for data and auth, with SEO-rendered public pages as the acquisition layer.
+The stack is Next.js with TypeScript and the App Router for the public frontend, backed by PostgreSQL/Supabase. Public pages use server-first rendering for search visibility.
+
+## Local frontend setup
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Fill `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env.local` with the values for your Supabase project. Do not commit that file or real credentials.
 
 ## Product principle
 
