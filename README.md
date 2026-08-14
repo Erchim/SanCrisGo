@@ -24,6 +24,29 @@ npm run dev
 
 Fill `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env.local` with the values for your Supabase project. Do not commit that file or real credentials.
 
+## Security baseline
+
+The public frontend sends a baseline set of security headers on every route: a
+Content Security Policy (CSP), `X-Content-Type-Options`, `Referrer-Policy`,
+`Permissions-Policy`, and a one-year `Strict-Transport-Security` policy for the
+production HTTPS deployment. The identifying `X-Powered-By` header is disabled.
+
+The CSP defaults resources and connections to the same origin, prevents framing
+and object/embed content, restricts forms to the same origin, and upgrades
+insecure requests. It intentionally permits inline scripts and styles because
+Next.js emits inline bootstrap scripts and may emit inline styles. Production
+does not permit `unsafe-eval`; local development permits it for Next.js
+development tooling. Moving to nonce-based script policies would require
+per-request rendering and should be evaluated deliberately rather than added as
+an incidental architecture change.
+
+CI installs the committed npm lockfile, lints, builds, and audits production
+dependencies. The audit fails for high or critical findings while avoiding a
+block on low-risk advisory noise. This is baseline hardening, not a claim that
+the application is secure against every threat. Any future analytics, maps,
+advertising, embeds, or external media hosts will require a deliberate CSP
+review and narrowly scoped directive updates.
+
 ## Product principle
 
 SanCrisGo does not need to sell every service itself. It should answer the local question well, then connect the visitor with the appropriate next action: go independently, contact transport, find an operator, visit a place, or attend an event.
