@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { getPublishedGuide } from "@/lib/guides";
 import { formatDate } from "@/lib/format-date";
+import { getAbsoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -15,7 +16,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const guide = await getPublishedGuide(slug);
   if (!guide) return { title: "Guide not found" };
-  return { title: guide.seo_title ?? guide.title, description: guide.seo_description ?? guide.summary ?? undefined };
+  const title = guide.seo_title ?? guide.title;
+  const description = guide.seo_description ?? guide.summary ?? undefined;
+  const canonical = getAbsoluteUrl(`/guides/${guide.slug}`);
+  return {
+    title,
+    description,
+    ...(canonical && { alternates: { canonical } }),
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      publishedTime: guide.published_at,
+      modifiedTime: guide.updated_at,
+      ...(canonical && { url: canonical }),
+    },
+  };
 }
 
 export default async function GuidePage({ params }: Props) {

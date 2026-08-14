@@ -2,9 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublishedGuides } from "@/lib/guides";
 import { formatDate } from "@/lib/format-date";
+import { getAbsoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Guides", description: "Guides from SanCrisGo." };
+const canonical = getAbsoluteUrl("/guides");
+export const metadata: Metadata = {
+  title: "Guides",
+  description: "Practical guides to San Cristóbal de las Casas from SanCrisGo.",
+  ...(canonical && { alternates: { canonical } }),
+  openGraph: {
+    title: "Guides",
+    description: "Practical guides to San Cristóbal de las Casas from SanCrisGo.",
+    ...(canonical && { url: canonical }),
+  },
+};
 
 export default async function GuidesPage() {
   const guides = await getPublishedGuides();
