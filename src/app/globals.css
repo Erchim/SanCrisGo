@@ -22,13 +22,21 @@ h1 { margin: 0; font-size: clamp(2.35rem, 8vw, 4.25rem); line-height: 1.04; }
 h2 { line-height: 1.2; }
 p, li { line-height: 1.65; }
 .lede { max-width: 42rem; margin-block: 1.25rem 0; color: #43534c; font-size: clamp(1.1rem, 3vw, 1.3rem); line-height: 1.6; }
+.home-hero { max-width: 48rem; padding-block: clamp(1rem, 4vw, 2.5rem); }
+.home-hero .lede { max-width: 38rem; }
+.primary-link { display: inline-block; margin-top: 2rem; padding: 0.8rem 1.2rem; border-radius: 0.4rem; background: #176545; color: #fff; font-weight: 700; text-decoration: none; }
+.primary-link:hover { background: #0d432d; color: #fff; }
+.latest-guides { margin-top: clamp(4rem, 10vw, 7rem); padding-top: clamp(2rem, 6vw, 3rem); border-top: 1px solid #dedbd1; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; }
+.section-heading h2 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.4rem); }
+.all-guides-link { flex: none; font-weight: 700; }
 .page-heading { margin-bottom: clamp(2rem, 6vw, 3.5rem); }
 .eyebrow, .guide-category { margin: 0 0 0.65rem; color: #176545; font-size: 0.78rem; font-weight: 750; letter-spacing: 0.09em; text-transform: uppercase; }
 .guide-list { display: grid; gap: 1.25rem; margin: 0; padding: 0; list-style: none; }
 .guide-card { padding: clamp(1.35rem, 4vw, 2rem); border: 1px solid #dedbd1; border-radius: 0.75rem; background: #fff; box-shadow: 0 0.25rem 1.25rem rgba(23, 37, 31, 0.035); }
-.guide-card h2 { margin: 0; font-size: clamp(1.35rem, 4vw, 1.65rem); }
-.guide-card h2 a { color: #17251f; text-decoration-thickness: 0.08em; text-decoration-color: #91b4a5; }
-.guide-card h2 a:hover { color: #176545; text-decoration-color: currentColor; }
+.guide-card h2, .guide-card h3 { margin: 0; font-size: clamp(1.35rem, 4vw, 1.65rem); }
+.guide-card h2 a, .guide-card h3 a { color: #17251f; text-decoration-thickness: 0.08em; text-decoration-color: #91b4a5; }
+.guide-card h2 a:hover, .guide-card h3 a:hover { color: #176545; text-decoration-color: currentColor; }
 .guide-summary { margin-block: 0.75rem; color: #43534c; }
 .guide-meta, .article-dates { color: #65716c; font-size: 0.875rem; }
 .guide-card .guide-meta { margin: 1rem 0 0; padding-top: 1rem; border-top: 1px solid #eeece5; }
@@ -55,5 +63,6 @@ p, li { line-height: 1.65; }
 @media (max-width: 34rem) {
   .site-header nav, main { width: min(100% - 1.25rem, 52rem); }
   .site-links { gap: 1rem; }
+  .section-heading { align-items: start; flex-direction: column; }
   .markdown { font-size: 1rem; }
 }
