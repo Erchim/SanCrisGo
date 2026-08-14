@@ -14,7 +14,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <header className="site-header">
           <nav aria-label="Primary navigation">
             <Link className="site-name" href="/">SanCrisGo</Link>
-            <Link href="/guides">Guides</Link>
+            <div className="site-links">
+              <Link href="/">Home</Link>
+              <Link href="/guides">Guides</Link>
+            </div>
           </nav>
         </header>
         <main>{children}</main>
