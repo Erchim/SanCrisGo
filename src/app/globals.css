@@ -1,0 +1,27 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1c2924;
+  background: #f7f5ef;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: #176545; text-underline-offset: 0.2em; }
+a:hover { color: #0d432d; }
+.site-header { border-bottom: 1px solid #d8d5cc; background: #fff; }
+.site-header nav, main { width: min(100% - 2rem, 48rem); margin-inline: auto; }
+.site-header nav { display: flex; align-items: center; gap: 1.25rem; min-height: 4rem; }
+.site-name { color: inherit; font-weight: 700; text-decoration: none; }
+main { padding-block: clamp(2rem, 7vw, 5rem); }
+h1 { font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1.05; }
+h2 { line-height: 1.2; }
+p, li { line-height: 1.65; }
+.lede { max-width: 38rem; font-size: 1.15rem; }
+.guide-list { display: grid; gap: 1rem; padding: 0; list-style: none; }
+.guide-card { padding: 1.25rem; border: 1px solid #d8d5cc; border-radius: 0.5rem; background: #fff; }
+.guide-card h2 { margin-top: 0; }
+.guide-meta { color: #56625d; font-size: 0.9rem; }
+.markdown { margin-top: 2.5rem; }
+.markdown img { max-width: 100%; height: auto; }
+.markdown pre { overflow-x: auto; padding: 1rem; background: #eae8e1; }

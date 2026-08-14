@@ -1,0 +1,15 @@
+# dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+/out/
+
+# local environment files (the example is intentionally committed)
+.env*
+!.env.example
+
+# logs and local tooling
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo
