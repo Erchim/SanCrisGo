@@ -20,6 +20,17 @@ export async function getPublishedGuides(): Promise<GuideListItem[]> {
   return data;
 }
 
+export async function getLatestPublishedGuides(): Promise<GuideListItem[]> {
+  const { data, error } = await createPublicSupabaseClient()
+    .from("guides")
+    .select("id,title,slug,summary,category,language,published_at,updated_at,last_verified_at")
+    .eq("publication_status", "published")
+    .order("published_at", { ascending: false })
+    .limit(3);
+  if (error) throw new Error(`Unable to load latest published guides: ${error.message}`);
+  return data;
+}
+
 export async function getPublishedGuide(slug: string): Promise<Guide | null> {
   const { data, error } = await createPublicSupabaseClient()
     .from("guides")
