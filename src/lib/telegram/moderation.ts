@@ -9,6 +9,27 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 export const TELEGRAM_CALLBACK_LIMIT_BYTES = 64;
 
 export type ModerationAction = "approve" | "reject";
+export type ModerationSendErrorCode =
+  | "candidate_load_failed"
+  | "candidate_not_found"
+  | "candidate_not_pending"
+  | "candidate_media_missing"
+  | "signed_url_failed"
+  | "telegram_send_failed"
+  | "configuration_missing"
+  | "unknown_error";
+
+export class ModerationSendError extends Error {
+  constructor(readonly code: Exclude<ModerationSendErrorCode, "unknown_error">) {
+    super(code);
+    this.name = "ModerationSendError";
+  }
+}
+
+export function moderationSendErrorCode(error: unknown): ModerationSendErrorCode {
+  return error instanceof ModerationSendError ? error.code : "unknown_error";
+}
+
 export function callbackData(action: ModerationAction, candidateId: string) {
   return `evt:${action === "approve" ? "a" : "r"}:${candidateId}`;
 }
@@ -22,16 +43,30 @@ interface DispatchCandidate { id: string; status: string; media_path: string | n
 export class TelegramModerationDispatcher {
   constructor(private readonly dependencies: { getCandidate(id: string): Promise<DispatchCandidate | null>; createSignedUrl(path: string): Promise<string>; telegram: Pick<TelegramClient, "sendPhoto" | "sendMessage">; chatId: string; }) {}
   async sendCandidateForModeration(candidateId: string) {
-    const candidate = await this.dependencies.getCandidate(candidateId.trim());
-    if (!candidate) throw new Error("Event candidate was not found.");
-    if (candidate.status !== "pending") throw new Error("Only pending candidates can be sent for moderation.");
-    if (!candidate.media_path) throw new Error("Event candidate media_path is required.");
-    const url = await this.dependencies.createSignedUrl(candidate.media_path);
+    let candidate: DispatchCandidate | null;
+    try {
+      candidate = await this.dependencies.getCandidate(candidateId.trim());
+    } catch {
+      throw new ModerationSendError("candidate_load_failed");
+    }
+    if (!candidate) throw new ModerationSendError("candidate_not_found");
+    if (candidate.status !== "pending") throw new ModerationSendError("candidate_not_pending");
+    if (!candidate.media_path) throw new ModerationSendError("candidate_media_missing");
+    let url: string;
+    try {
+      url = await this.dependencies.createSignedUrl(candidate.media_path);
+    } catch {
+      throw new ModerationSendError("signed_url_failed");
+    }
     const text = formatCandidate(candidate);
     const keyboard = moderationKeyboard(candidate.id);
-    if (text.length <= CAPTION_LIMIT) return this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url, text, keyboard);
-    await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url);
-    return this.dependencies.telegram.sendMessage(this.dependencies.chatId, text, keyboard);
+    try {
+      if (text.length <= CAPTION_LIMIT) return await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url, text, keyboard);
+      await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url);
+      return await this.dependencies.telegram.sendMessage(this.dependencies.chatId, text, keyboard);
+    } catch {
+      throw new ModerationSendError("telegram_send_failed");
+    }
   }
 }
 
@@ -53,4 +88,14 @@ export function createTelegramModerationDispatcher(client: SupabaseClient = crea
     createSignedUrl: (path) => createEventMediaSignedUrl(path, undefined, client), telegram: createTelegramClientFromEnv(), chatId,
   });
 }
-export function sendCandidateForModeration(id: string) { return createTelegramModerationDispatcher().sendCandidateForModeration(id); }
+export function sendCandidateForModeration(id: string) {
+  if (
+    !process.env.SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    !process.env.TELEGRAM_BOT_TOKEN ||
+    !process.env.TELEGRAM_MODERATION_CHAT_ID
+  ) {
+    throw new ModerationSendError("configuration_missing");
+  }
+  return createTelegramModerationDispatcher().sendCandidateForModeration(id);
+}
