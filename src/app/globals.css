@@ -161,6 +161,8 @@ p, li { line-height: 1.65; }
 .admin-login { max-width: 32rem; margin-inline: auto; }
 .admin-login-form { margin-top: 2rem; padding: 1.5rem; border: 1px solid #dedbd1; border-radius: 0.75rem; background: #fff; }
 .admin-login-form button { margin-top: 0.5rem; }
+.admin-auth-link { margin-top: 1rem; text-align: center; }
+.admin-auth-link a { color: #176545; font-weight: 700; text-underline-offset: 0.2em; }
 
 @media (max-width: 34rem) {
   .site-header nav, main { width: min(100% - 1.25rem, 52rem); }
