@@ -2,7 +2,6 @@ import "server-only";
 
 const GRAPH_API_ORIGIN = "https://graph.instagram.com";
 const DEFAULT_API_VERSION = "v26.0";
-const DEFAULT_LOCATION_ID = "216245671";
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -56,7 +55,7 @@ export class InstagramPublisher {
   private readonly accessToken: string;
   private readonly igUserId: string;
   private readonly apiVersion: string;
-  private readonly locationId: string;
+  private readonly locationId: string | undefined;
   private readonly pollIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly fetch: Fetch;
@@ -70,7 +69,7 @@ export class InstagramPublisher {
     this.accessToken = requireValue(config.accessToken, "Instagram access token");
     this.igUserId = requireValue(config.igUserId, "Instagram user ID");
     this.apiVersion = normalizeApiVersion(config.apiVersion ?? DEFAULT_API_VERSION);
-    this.locationId = normalizeLocationId(config.locationId ?? DEFAULT_LOCATION_ID);
+    this.locationId = normalizeLocationId(config.locationId);
     this.pollIntervalMs = positiveNumber(
       config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
       "pollIntervalMs",
@@ -100,11 +99,13 @@ export class InstagramPublisher {
   }
 
   private async createContainer(imageUrl: string, caption: string): Promise<string> {
-    const response = await this.post<IdResponse>(`/${this.igUserId}/media`, {
+    const fields: Record<string, string> = {
       image_url: imageUrl,
       caption,
-      location_id: this.locationId,
-    });
+    };
+    if (this.locationId) fields.location_id = this.locationId;
+
+    const response = await this.post<IdResponse>(`/${this.igUserId}/media`, fields);
 
     if (!response.id) {
       throw new InstagramPublisherError("Instagram container response did not include a creation ID.");
@@ -192,7 +193,7 @@ export function createInstagramPublisherFromEnv(): InstagramPublisher {
     accessToken: requireValue(process.env.IG_ACCESS_TOKEN, "IG_ACCESS_TOKEN"),
     igUserId: requireValue(process.env.IG_USER_ID, "IG_USER_ID"),
     apiVersion: process.env.IG_API_VERSION ?? DEFAULT_API_VERSION,
-    locationId: process.env.IG_DEFAULT_LOCATION_ID ?? DEFAULT_LOCATION_ID,
+    locationId: process.env.IG_DEFAULT_LOCATION_ID,
   });
 }
 
@@ -212,8 +213,9 @@ function normalizeApiVersion(value: string): string {
   return normalized;
 }
 
-function normalizeLocationId(value: string): string {
-  const normalized = value.trim();
+function normalizeLocationId(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized) return undefined;
   if (!/^\d+$/.test(normalized)) {
     throw new InstagramPublisherError("Instagram location ID must be numeric.");
   }
