@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const wa = require('@open-wa/wa-automate');
 const fs = require('fs');
 const path = require('path');
