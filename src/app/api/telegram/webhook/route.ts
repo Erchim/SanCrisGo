@@ -5,10 +5,26 @@ import { createTelegramClientFromEnv, type TelegramClient } from "@/lib/telegram
 import { parseModerationCallback } from "@/lib/telegram/moderation";
 import { getWebsiteQueueSummary, isWebsiteQueueCommand, type WebsiteQueueSummary } from "@/lib/telegram/website-queue";
 
+type TelegramMessage = { text?: unknown; chat?: { id?: unknown } };
+type TelegramCallbackQuery = {
+  id?: unknown;
+  data?: unknown;
+  message?: { message_id?: unknown; chat?: { id?: unknown } };
+};
 interface TelegramUpdate {
-  callback_query?: { id?: unknown; data?: unknown; message?: { message_id?: unknown; chat?: { id?: unknown } } };
-  message?: { text?: unknown; chat?: { id?: unknown } };
+  [key: string]: unknown;
+  update_id?: unknown;
+  callback_query?: TelegramCallbackQuery;
+  message?: TelegramMessage;
+  edited_message?: TelegramMessage;
+  business_message?: TelegramMessage;
+  edited_business_message?: TelegramMessage;
 }
+type TelegramMessageSource =
+  | "message"
+  | "edited_message"
+  | "business_message"
+  | "edited_business_message";
 type WebhookDependencies = {
   secret: string | undefined;
   moderation: Pick<EventModerationService, "approve" | "reject">;
@@ -24,10 +40,33 @@ export function createTelegramWebhookHandler(dependencies: WebhookDependencies) 
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
     let update: TelegramUpdate;
-    try { update = await request.json() as TelegramUpdate; } catch { return NextResponse.json({ ok: true }); }
+    try {
+      const body: unknown = await request.json();
+      update = isRecord(body) ? body as TelegramUpdate : {};
+    } catch {
+      return NextResponse.json({ ok: true });
+    }
 
-    const message = update.message;
-    if (isWebsiteQueueCommand(message?.text)) {
+    const query = asCallbackQuery(update.callback_query);
+    const commandMessage = getCommandMessage(update);
+    const message = commandMessage?.message;
+    const websiteQueueCommand = isWebsiteQueueCommand(message?.text);
+
+    console.info("[telegram/webhook] update received", {
+      hasUpdateId: Object.hasOwn(update, "update_id"),
+      topLevelKeys: Object.keys(update).sort(),
+      hasMessage: Boolean(asMessage(update.message)),
+      hasEditedMessage: Boolean(asMessage(update.edited_message)),
+      hasBusinessMessage: Boolean(asMessage(update.business_message)),
+      hasEditedBusinessMessage: Boolean(asMessage(update.edited_business_message)),
+      hasCallbackQuery: Boolean(query),
+      messageSource: commandMessage?.source ?? "none",
+      textType: typeof message?.text,
+      hasChatId: hasChatId(message),
+      websiteQueueCommand,
+    });
+
+    if (websiteQueueCommand) {
       const incomingChatId = typeof message?.chat?.id === "number" || typeof message?.chat?.id === "string"
         ? String(message.chat.id).trim()
         : undefined;
@@ -47,30 +86,40 @@ export function createTelegramWebhookHandler(dependencies: WebhookDependencies) 
       }
 
       if (!chatMatches || !dependencies.getWebsiteSummary) {
-        await dependencies.telegram.sendMessage(
+        await sendWebsiteQueueMessage(
+          dependencies.telegram.sendMessage.bind(dependencies.telegram),
           incomingChatId,
           "Команда /site недоступна в этом чате.",
+          undefined,
+          "unavailable",
         );
         return NextResponse.json({ ok: true });
       }
 
       try {
         const summary = await dependencies.getWebsiteSummary();
-        await dependencies.telegram.sendMessage(
+        await sendWebsiteQueueMessage(
+          dependencies.telegram.sendMessage.bind(dependencies.telegram),
           incomingChatId,
           summary.text,
           summary.replyMarkup,
+          "summary",
         );
-      } catch {
-        await dependencies.telegram.sendMessage(
+      } catch (error) {
+        console.warn("[telegram/site] queue response failed", {
+          errorClass: getErrorClass(error),
+        });
+        await sendWebsiteQueueMessage(
+          dependencies.telegram.sendMessage.bind(dependencies.telegram),
           incomingChatId,
           "Не удалось загрузить очередь сайта. Попробуйте команду /site ещё раз.",
+          undefined,
+          "retry",
         );
       }
       return NextResponse.json({ ok: true });
     }
 
-    const query = update.callback_query;
     const parsed = parseModerationCallback(query?.data);
     if (!parsed || typeof query?.id !== "string") return NextResponse.json({ ok: true });
 
@@ -102,4 +151,62 @@ export async function POST(request: Request) {
     moderationChatId: process.env.TELEGRAM_MODERATION_CHAT_ID,
     getWebsiteSummary: getWebsiteQueueSummary,
   })(request);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asMessage(value: unknown): TelegramMessage | undefined {
+  return isRecord(value) ? value as TelegramMessage : undefined;
+}
+
+function asCallbackQuery(value: unknown): TelegramCallbackQuery | undefined {
+  return isRecord(value) ? value as TelegramCallbackQuery : undefined;
+}
+
+function getCommandMessage(update: TelegramUpdate): {
+  source: TelegramMessageSource;
+  message: TelegramMessage;
+} | undefined {
+  const sources: TelegramMessageSource[] = [
+    "message",
+    "edited_message",
+    "business_message",
+    "edited_business_message",
+  ];
+  for (const source of sources) {
+    const message = asMessage(update[source]);
+    if (message) return { source, message };
+  }
+  return undefined;
+}
+
+function hasChatId(message: TelegramMessage | undefined): boolean {
+  return typeof message?.chat?.id === "number" || typeof message?.chat?.id === "string";
+}
+
+function getErrorClass(error: unknown): string {
+  return error instanceof Error ? error.name : "UnknownError";
+}
+
+async function sendWebsiteQueueMessage(
+  sendMessage: (chatId: string, text: string, replyMarkup?: WebsiteQueueSummary["replyMarkup"]) => Promise<unknown>,
+  chatId: string,
+  text: string,
+  replyMarkup: WebsiteQueueSummary["replyMarkup"] | undefined,
+  responseType: "summary" | "unavailable" | "retry",
+) {
+  console.info("[telegram/site] send started", { responseType });
+  try {
+    if (replyMarkup) await sendMessage(chatId, text, replyMarkup);
+    else await sendMessage(chatId, text);
+    console.info("[telegram/site] send succeeded", { responseType });
+  } catch (error) {
+    console.error("[telegram/site] send failed", {
+      responseType,
+      errorClass: getErrorClass(error),
+    });
+    throw error;
+  }
 }
