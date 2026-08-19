@@ -2,6 +2,7 @@ import "server-only";
 
 const GRAPH_API_ORIGIN = "https://graph.instagram.com";
 const DEFAULT_API_VERSION = "v26.0";
+const DEFAULT_LOCATION_ID = "216245671";
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -11,6 +12,7 @@ export interface InstagramPublisherConfig {
   accessToken: string;
   igUserId: string;
   apiVersion?: string;
+  locationId?: string;
   pollIntervalMs?: number;
   timeoutMs?: number;
 }
@@ -54,6 +56,7 @@ export class InstagramPublisher {
   private readonly accessToken: string;
   private readonly igUserId: string;
   private readonly apiVersion: string;
+  private readonly locationId: string;
   private readonly pollIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly fetch: Fetch;
@@ -67,6 +70,7 @@ export class InstagramPublisher {
     this.accessToken = requireValue(config.accessToken, "Instagram access token");
     this.igUserId = requireValue(config.igUserId, "Instagram user ID");
     this.apiVersion = normalizeApiVersion(config.apiVersion ?? DEFAULT_API_VERSION);
+    this.locationId = normalizeLocationId(config.locationId ?? DEFAULT_LOCATION_ID);
     this.pollIntervalMs = positiveNumber(
       config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
       "pollIntervalMs",
@@ -99,6 +103,7 @@ export class InstagramPublisher {
     const response = await this.post<IdResponse>(`/${this.igUserId}/media`, {
       image_url: imageUrl,
       caption,
+      location_id: this.locationId,
     });
 
     if (!response.id) {
@@ -187,6 +192,7 @@ export function createInstagramPublisherFromEnv(): InstagramPublisher {
     accessToken: requireValue(process.env.IG_ACCESS_TOKEN, "IG_ACCESS_TOKEN"),
     igUserId: requireValue(process.env.IG_USER_ID, "IG_USER_ID"),
     apiVersion: process.env.IG_API_VERSION ?? DEFAULT_API_VERSION,
+    locationId: process.env.IG_DEFAULT_LOCATION_ID ?? DEFAULT_LOCATION_ID,
   });
 }
 
@@ -202,6 +208,14 @@ function normalizeApiVersion(value: string): string {
   const normalized = value.trim();
   if (!/^v\d+\.\d+$/.test(normalized)) {
     throw new InstagramPublisherError("Instagram API version must look like v26.0.");
+  }
+  return normalized;
+}
+
+function normalizeLocationId(value: string): string {
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new InstagramPublisherError("Instagram location ID must be numeric.");
   }
   return normalized;
 }

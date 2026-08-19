@@ -41,6 +41,9 @@ describe("InstagramPublisher", () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       "https://graph.instagram.com/v26.0/17841400000000000/media",
     );
+    const containerBody = fetchMock.mock.calls[0][1].body;
+    expect(containerBody).toBeInstanceOf(URLSearchParams);
+    expect((containerBody as URLSearchParams).get("location_id")).toBe("216245671");
     expect(fetchMock.mock.calls[3][0]).toBe(
       "https://graph.instagram.com/v26.0/17841400000000000/media_publish",
     );
@@ -53,6 +56,32 @@ describe("InstagramPublisher", () => {
       }
     }
     expect(sleep).toHaveBeenCalledWith(10);
+  });
+
+  it("allows the default location to be overridden", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ id: "creation-1" }))
+      .mockResolvedValueOnce(jsonResponse({ status_code: "FINISHED" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "instagram-media-1" }));
+    const publisher = new InstagramPublisher({
+      ...config,
+      locationId: "123456789",
+    }, { fetch: fetchMock });
+
+    await publisher.publishImage({
+      imageUrl: "https://signed.example/event.jpg",
+      caption: "Event caption",
+    });
+
+    const containerBody = fetchMock.mock.calls[0][1].body as URLSearchParams;
+    expect(containerBody.get("location_id")).toBe("123456789");
+  });
+
+  it("rejects a non-numeric location ID", () => {
+    expect(() => new InstagramPublisher({
+      ...config,
+      locationId: "San Cristobal",
+    })).toThrow("Instagram location ID must be numeric.");
   });
 
   it("fails when the container reports an error", async () => {
