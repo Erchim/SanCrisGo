@@ -12,6 +12,7 @@ const SAFE_PUBLICATION_ERROR = "Instagram publication failed.";
 
 interface InstagramImagePublisher {
   publishImage(input: { imageUrl: string; caption: string }): Promise<string>;
+  publishCarousel(input: { imageUrls: string[]; caption: string }): Promise<string>;
 }
 
 export interface EventPublicationServiceDependencies {
@@ -54,8 +55,9 @@ export class EventPublicationService {
     if (candidate.status !== "approved") {
       throw new EventPublicationServiceError("Only approved event candidates can be published.");
     }
-    if (!candidate.mediaPath?.trim()) {
-      throw new EventPublicationServiceError("Event candidate media_path is required.");
+    const mediaPaths = candidate.mediaPaths.map((path) => path.trim()).filter(Boolean);
+    if (mediaPaths.length === 0) {
+      throw new EventPublicationServiceError("Event candidate media is required.");
     }
 
     const publication = await this.dependencies.repository
@@ -80,11 +82,18 @@ export class EventPublicationService {
 
     let instagramMediaId: string;
     try {
-      const imageUrl = await this.dependencies.createSignedUrl(candidate.mediaPath);
-      instagramMediaId = await this.dependencies.instagramPublisher.publishImage({
-        imageUrl,
-        caption: candidate.originalText,
-      });
+      const imageUrls = await Promise.all(
+        mediaPaths.map((mediaPath) => this.dependencies.createSignedUrl(mediaPath)),
+      );
+      instagramMediaId = imageUrls.length === 1
+        ? await this.dependencies.instagramPublisher.publishImage({
+          imageUrl: imageUrls[0],
+          caption: candidate.originalText,
+        })
+        : await this.dependencies.instagramPublisher.publishCarousel({
+          imageUrls,
+          caption: candidate.originalText,
+        });
     } catch {
       await this.dependencies.repository.markFailed(publication.id, SAFE_PUBLICATION_ERROR);
       throw new EventPublicationServiceError(SAFE_PUBLICATION_ERROR);

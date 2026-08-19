@@ -44,6 +44,11 @@ export interface PublishImageInput {
   caption: string;
 }
 
+export interface PublishCarouselInput {
+  imageUrls: string[];
+  caption: string;
+}
+
 export class InstagramPublisherError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -98,6 +103,39 @@ export class InstagramPublisher {
     return response.id;
   }
 
+  async publishCarousel(input: PublishCarouselInput): Promise<string> {
+    if (input.imageUrls.length < 2 || input.imageUrls.length > 10) {
+      throw new InstagramPublisherError("Instagram carousels require between 2 and 10 images.");
+    }
+    const imageUrls = input.imageUrls.map(requireHttpUrl);
+    const childIds = await Promise.all(imageUrls.map(async (imageUrl) => {
+      const childId = await this.createCarouselItem(imageUrl);
+      await this.waitForContainer(childId);
+      return childId;
+    }));
+
+    const fields: Record<string, string> = {
+      media_type: "CAROUSEL",
+      children: childIds.join(","),
+    };
+    if (input.caption) fields.caption = input.caption;
+    if (this.locationId) fields.location_id = this.locationId;
+
+    const response = await this.post<IdResponse>(`/${this.igUserId}/media`, fields);
+    if (!response.id) {
+      throw new InstagramPublisherError("Instagram carousel response did not include a creation ID.");
+    }
+    await this.waitForContainer(response.id);
+
+    const publication = await this.post<IdResponse>(`/${this.igUserId}/media_publish`, {
+      creation_id: response.id,
+    });
+    if (!publication.id) {
+      throw new InstagramPublisherError("Instagram media publish response did not include an ID.");
+    }
+    return publication.id;
+  }
+
   private async createContainer(imageUrl: string, caption: string): Promise<string> {
     const fields: Record<string, string> = {
       image_url: imageUrl,
@@ -111,6 +149,17 @@ export class InstagramPublisher {
       throw new InstagramPublisherError("Instagram container response did not include a creation ID.");
     }
 
+    return response.id;
+  }
+
+  private async createCarouselItem(imageUrl: string): Promise<string> {
+    const response = await this.post<IdResponse>(`/${this.igUserId}/media`, {
+      image_url: imageUrl,
+      is_carousel_item: "true",
+    });
+    if (!response.id) {
+      throw new InstagramPublisherError("Instagram carousel item response did not include a creation ID.");
+    }
     return response.id;
   }
 

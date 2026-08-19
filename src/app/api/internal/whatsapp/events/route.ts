@@ -3,7 +3,10 @@ import { secretsMatch } from "@/lib/server-secret";
 import { WhatsAppEventIngester, type WhatsAppEventInput } from "@/lib/events/whatsapp-ingestion";
 import { sendCandidateForModeration } from "@/lib/telegram/moderation";
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGES = 10;
+// Vercel Functions reject request bodies above 4.5 MB. Leave room for the
+// multipart envelope and metadata so callers receive a deterministic error.
+const MAX_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024;
 const IMAGE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -28,28 +31,51 @@ export function createWhatsAppEventsHandler(
     try { form = await request.formData(); }
     catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
 
-    const image = form.get("image");
-    if (!(image instanceof File)) return invalid();
-    const extension = IMAGE_EXTENSIONS[image.type];
-    if (!extension) return NextResponse.json({ error: "Unsupported image type." }, { status: 400 });
-    if (image.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Image is too large." }, { status: 413 });
+    const images = form.getAll("image");
+    if (images.length < 1 || images.length > MAX_IMAGES || images.some((image) => !(image instanceof File))) {
+      return invalid();
+    }
+
+    const imageFiles = images as File[];
+    const extensions = imageFiles.map((image) => IMAGE_EXTENSIONS[image.type]);
+    if (extensions.some((extension) => !extension)) {
+      return NextResponse.json({ error: "Unsupported image type." }, { status: 400 });
+    }
+    const totalImageBytes = imageFiles.reduce((total, image) => total + image.size, 0);
+    if (totalImageBytes > MAX_TOTAL_IMAGE_BYTES) {
+      return NextResponse.json({ error: "Images are too large." }, { status: 413 });
+    }
 
     const value = (name: string) => {
       const entry = form.get(name);
       return typeof entry === "string" ? entry : "";
     };
-    const sourceMessageId = value("sourceMessageId").trim();
+    const sourceMessageIds = form.getAll("sourceMessageId")
+      .map((entry) => typeof entry === "string" ? entry.trim() : "");
     const sourceGroupId = value("sourceGroupId").trim();
     const caption = value("caption").trim();
-    const receivedAt = value("receivedAt").trim();
-    if (!sourceMessageId || !sourceGroupId || !receivedAt || Number.isNaN(Date.parse(receivedAt))) return invalid();
+    const receivedAts = form.getAll("receivedAt")
+      .map((entry) => typeof entry === "string" ? entry.trim() : "");
+    if (
+      !sourceGroupId ||
+      sourceMessageIds.length !== imageFiles.length ||
+      receivedAts.length !== imageFiles.length ||
+      sourceMessageIds.some((id) => !id) ||
+      new Set(sourceMessageIds).size !== sourceMessageIds.length ||
+      receivedAts.some((receivedAt) => !receivedAt || Number.isNaN(Date.parse(receivedAt)))
+    ) return invalid();
 
     const input: WhatsAppEventInput = {
-      image, extension, sourceMessageId, sourceGroupId, caption,
+      images: imageFiles.map((image, index) => ({
+        image,
+        extension: extensions[index]!,
+        sourceMessageId: sourceMessageIds[index],
+        receivedAt: new Date(receivedAts[index]).toISOString(),
+      })),
+      sourceGroupId, caption,
       sourceGroupName: value("sourceGroupName"),
       sourceSenderId: value("sourceSenderId"),
       sourceSenderName: value("sourceSenderName"),
-      receivedAt: new Date(receivedAt).toISOString(),
     };
 
     try {

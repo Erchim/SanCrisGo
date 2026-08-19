@@ -68,9 +68,9 @@ describe("WhatsApp event ingestion endpoint", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects images larger than 10 MiB", async () => {
+  it("rejects image payloads larger than 4 MiB", async () => {
     const deps = dependencies();
-    const image = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.jpg", { type: "image/jpeg" });
+    const image = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "large.jpg", { type: "image/jpeg" });
     const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(formRequest({ image }));
     expect(response.status).toBe(413);
   });
@@ -81,7 +81,8 @@ describe("WhatsApp event ingestion endpoint", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true, candidateId: "candidate-1" });
     expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
-      sourceMessageId: "message-1", caption: "Event caption", extension: "jpg",
+      caption: "Event caption",
+      images: [expect.objectContaining({ sourceMessageId: "message-1", extension: "jpg" })],
     }));
     expect(deps.dispatch).toHaveBeenCalledOnce();
     expect(deps.ingester.markModerationSent).toHaveBeenCalledWith("candidate-1");
@@ -95,11 +96,60 @@ describe("WhatsApp event ingestion endpoint", () => {
 
     expect(response.status).toBe(200);
     expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
-      sourceMessageId: "message-1",
       caption: "",
-      extension: "jpg",
+      images: [expect.objectContaining({ sourceMessageId: "message-1", extension: "jpg" })],
     }));
     expect(deps.dispatch).toHaveBeenCalledWith("candidate-1");
+  });
+
+  it("accepts ordered image, message ID, and timestamp fields for an album", async () => {
+    const deps = dependencies();
+    const form = new FormData();
+    form.append("image", new File(["one"], "one.jpg", { type: "image/jpeg" }));
+    form.append("image", new File(["two"], "two.png", { type: "image/png" }));
+    form.append("sourceMessageId", "message-1");
+    form.append("sourceMessageId", "message-2");
+    form.append("receivedAt", "2026-08-19T12:00:00.000Z");
+    form.append("receivedAt", "2026-08-19T12:00:05.000Z");
+    form.set("sourceGroupId", "group-1");
+    form.set("caption", "Album caption");
+    const request = new Request(endpoint, {
+      method: "POST",
+      headers: { authorization: "Bearer whatsapp-secret" },
+      body: form,
+    });
+
+    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(request);
+
+    expect(response.status).toBe(200);
+    expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
+      caption: "Album caption",
+      images: [
+        expect.objectContaining({ sourceMessageId: "message-1", extension: "jpg" }),
+        expect.objectContaining({ sourceMessageId: "message-2", extension: "png" }),
+      ],
+    }));
+  });
+
+  it("rejects an album when per-image metadata counts do not match", async () => {
+    const deps = dependencies();
+    const form = new FormData();
+    form.append("image", new File(["one"], "one.jpg", { type: "image/jpeg" }));
+    form.append("image", new File(["two"], "two.jpg", { type: "image/jpeg" }));
+    form.append("sourceMessageId", "message-1");
+    form.append("receivedAt", "2026-08-19T12:00:00.000Z");
+    form.append("receivedAt", "2026-08-19T12:00:05.000Z");
+    form.set("sourceGroupId", "group-1");
+    const request = new Request(endpoint, {
+      method: "POST",
+      headers: { authorization: "Bearer whatsapp-secret" },
+      body: form,
+    });
+
+    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(request);
+
+    expect(response.status).toBe(400);
+    expect(deps.ingester.ingest).not.toHaveBeenCalled();
   });
 
   it("treats a previously moderated duplicate sourceMessageId as idempotent", async () => {

@@ -39,9 +39,17 @@ export function parseModerationCallback(data: unknown): { action: ModerationActi
   return match ? { action: match[1].toLowerCase() === "a" ? "approve" : "reject", candidateId: match[2].toLowerCase() } : null;
 }
 
-interface DispatchCandidate { id: string; status: string; media_path: string | null; original_text: string; source_group_name: string | null; source_sender_name: string | null; }
+interface DispatchCandidate {
+  id: string;
+  status: string;
+  media_path: string | null;
+  media_paths?: string[];
+  original_text: string;
+  source_group_name: string | null;
+  source_sender_name: string | null;
+}
 export class TelegramModerationDispatcher {
-  constructor(private readonly dependencies: { getCandidate(id: string): Promise<DispatchCandidate | null>; createSignedUrl(path: string): Promise<string>; telegram: Pick<TelegramClient, "sendPhoto" | "sendMessage">; chatId: string; }) {}
+  constructor(private readonly dependencies: { getCandidate(id: string): Promise<DispatchCandidate | null>; createSignedUrl(path: string): Promise<string>; telegram: Pick<TelegramClient, "sendPhoto" | "sendMessage" | "sendMediaGroup">; chatId: string; }) {}
   async sendCandidateForModeration(candidateId: string) {
     let candidate: DispatchCandidate | null;
     try {
@@ -51,18 +59,27 @@ export class TelegramModerationDispatcher {
     }
     if (!candidate) throw new ModerationSendError("candidate_not_found");
     if (candidate.status !== "pending") throw new ModerationSendError("candidate_not_pending");
-    if (!candidate.media_path) throw new ModerationSendError("candidate_media_missing");
-    let url: string;
+    const mediaPaths = candidate.media_paths?.filter(Boolean) ?? [];
+    if (mediaPaths.length === 0 && candidate.media_path) mediaPaths.push(candidate.media_path);
+    if (mediaPaths.length === 0) throw new ModerationSendError("candidate_media_missing");
+    let urls: string[];
     try {
-      url = await this.dependencies.createSignedUrl(candidate.media_path);
+      urls = await Promise.all(mediaPaths.map((path) => this.dependencies.createSignedUrl(path)));
     } catch {
       throw new ModerationSendError("signed_url_failed");
     }
     const text = formatCandidate(candidate);
     const keyboard = moderationKeyboard(candidate.id);
     try {
-      if (text.length <= CAPTION_LIMIT) return await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url, text, keyboard);
-      await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, url);
+      if (urls.length > 1) {
+        await this.dependencies.telegram.sendMediaGroup(
+          this.dependencies.chatId,
+          urls.map((url) => ({ type: "photo", media: url })),
+        );
+        return await this.dependencies.telegram.sendMessage(this.dependencies.chatId, text, keyboard);
+      }
+      if (text.length <= CAPTION_LIMIT) return await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, urls[0], text, keyboard);
+      await this.dependencies.telegram.sendPhoto(this.dependencies.chatId, urls[0]);
       return await this.dependencies.telegram.sendMessage(this.dependencies.chatId, text, keyboard);
     } catch {
       throw new ModerationSendError("telegram_send_failed");
@@ -83,7 +100,20 @@ export function createTelegramModerationDispatcher(client: SupabaseClient = crea
     getCandidate: async (id) => {
       const { data, error } = await client.from("event_candidates").select("id,status,media_path,original_text,source_group_name,source_sender_name").eq("id", id).maybeSingle<DispatchCandidate>();
       if (error) throw new Error("Could not load the event candidate.");
-      return data;
+      if (!data) return null;
+      const { data: messages, error: messagesError } = await client
+        .from("event_candidate_messages")
+        .select("media_path,sequence")
+        .eq("candidate_id", id)
+        .not("media_path", "is", null)
+        .order("sequence", { ascending: true });
+      if (messagesError) throw new Error("Could not load the event candidate media.");
+      return {
+        ...data,
+        media_paths: (messages ?? [])
+          .map((message) => typeof message.media_path === "string" ? message.media_path : "")
+          .filter(Boolean),
+      };
     },
     createSignedUrl: (path) => createEventMediaSignedUrl(path, undefined, client), telegram: createTelegramClientFromEnv(), chatId,
   });

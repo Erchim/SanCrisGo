@@ -93,6 +93,59 @@ describe("InstagramPublisher", () => {
     expect(containerBody.has("caption")).toBe(false);
   });
 
+  it("creates image items and publishes an ordered carousel", async () => {
+    const childIds = ["child-1", "child-2", "child-3"];
+    let nextChild = 0;
+    const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+      const stringUrl = String(url);
+      if (stringUrl.endsWith("/17841400000000000/media") && init?.method === "POST") {
+        const body = init.body as URLSearchParams;
+        if (body.get("is_carousel_item") === "true") {
+          return Promise.resolve(jsonResponse({ id: childIds[nextChild++] }));
+        }
+        expect(body.get("media_type")).toBe("CAROUSEL");
+        expect(body.get("children")).toBe(childIds.join(","));
+        expect(body.get("caption")).toBe("Album caption");
+        return Promise.resolve(jsonResponse({ id: "carousel-1" }));
+      }
+      if (stringUrl.includes("/child-") || stringUrl.includes("/carousel-1")) {
+        return Promise.resolve(jsonResponse({ status_code: "FINISHED" }));
+      }
+      if (stringUrl.endsWith("/17841400000000000/media_publish")) {
+        return Promise.resolve(jsonResponse({ id: "instagram-carousel-1" }));
+      }
+      return Promise.resolve(jsonResponse({}, 404));
+    });
+    const publisher = new InstagramPublisher(config, { fetch: fetchMock as typeof fetch });
+
+    await expect(publisher.publishCarousel({
+      imageUrls: [
+        "https://signed.example/one.jpg",
+        "https://signed.example/two.jpg",
+        "https://signed.example/three.jpg",
+      ],
+      caption: "Album caption",
+    })).resolves.toBe("instagram-carousel-1");
+
+    const childBodies = fetchMock.mock.calls
+      .map((call) => call[1]?.body)
+      .filter((body): body is URLSearchParams => body instanceof URLSearchParams)
+      .filter((body) => body.get("is_carousel_item") === "true");
+    expect(childBodies.map((body) => body.get("image_url"))).toEqual([
+      "https://signed.example/one.jpg",
+      "https://signed.example/two.jpg",
+      "https://signed.example/three.jpg",
+    ]);
+  });
+
+  it.each([1, 11])("rejects a carousel with %i images", async (count) => {
+    const publisher = new InstagramPublisher(config, { fetch: vi.fn() as typeof fetch });
+    await expect(publisher.publishCarousel({
+      imageUrls: Array.from({ length: count }, (_, index) => `https://signed.example/${index}.jpg`),
+      caption: "Caption",
+    })).rejects.toThrow("Instagram carousels require between 2 and 10 images.");
+  });
+
   it("rejects a non-numeric location ID", () => {
     expect(() => new InstagramPublisher({
       ...config,

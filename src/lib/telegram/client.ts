@@ -6,6 +6,12 @@ export interface InlineKeyboardMarkup {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
 }
 
+export interface InputMediaPhoto {
+  type: "photo";
+  media: string;
+  caption?: string;
+}
+
 export class TelegramClient {
   constructor(private readonly token: string, private readonly fetcher: typeof fetch = fetch) {
     if (!token) throw new Error("TELEGRAM_BOT_TOKEN is required.");
@@ -16,6 +22,9 @@ export class TelegramClient {
   }
   sendMessage(chatId: string, text: string, replyMarkup?: InlineKeyboardMarkup) {
     return this.call("sendMessage", { chat_id: chatId, text, reply_markup: replyMarkup });
+  }
+  sendMediaGroup(chatId: string, media: InputMediaPhoto[]) {
+    return this.call("sendMediaGroup", { chat_id: chatId, media });
   }
   answerCallbackQuery(callbackQueryId: string, text: string, showAlert = false) {
     return this.call("answerCallbackQuery", { callback_query_id: callbackQueryId, text, show_alert: showAlert });

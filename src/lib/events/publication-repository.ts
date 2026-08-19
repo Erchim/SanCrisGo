@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export interface EventCandidateForPublication {
   id: string;
   status: string;
-  mediaPath: string | null;
+  mediaPaths: string[];
   originalText: string;
 }
 
@@ -55,10 +55,26 @@ export class SupabaseEventPublicationRepository implements EventPublicationRepos
       return null;
     }
 
+    const { data: messages, error: messagesError } = await this.client
+      .from("event_candidate_messages")
+      .select("media_path,sequence")
+      .eq("candidate_id", candidateId)
+      .not("media_path", "is", null)
+      .order("sequence", { ascending: true });
+
+    if (messagesError) {
+      throw new Error("Could not load the event candidate media.");
+    }
+
+    const mediaPaths = (messages ?? [])
+      .map((message) => typeof message.media_path === "string" ? message.media_path : "")
+      .filter(Boolean);
+    if (mediaPaths.length === 0 && data.media_path) mediaPaths.push(data.media_path);
+
     return {
       id: data.id,
       status: data.status,
-      mediaPath: data.media_path,
+      mediaPaths,
       originalText: data.original_text,
     };
   }
