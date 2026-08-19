@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminIdentity } from "@/lib/admin-auth";
 import { signIn } from "./actions";
@@ -10,13 +11,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; status?: string | string[] }>;
 };
 
 const errorMessages: Record<string, string> = {
   missing: "Enter both email and password.",
   invalid: "The email or password is incorrect.",
   forbidden: "This account does not have access to the event admin.",
+  recovery: "The recovery link is invalid or has expired. Request a new one.",
 };
 
 export default async function AdminLoginPage({ searchParams }: Props) {
@@ -24,6 +26,7 @@ export default async function AdminLoginPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const errorCode = typeof params.error === "string" ? params.error : "";
+  const statusCode = typeof params.status === "string" ? params.status : "";
 
   return (
     <section className="admin-login">
@@ -33,6 +36,9 @@ export default async function AdminLoginPage({ searchParams }: Props) {
 
       {errorMessages[errorCode] && (
         <p className="admin-alert" role="alert">{errorMessages[errorCode]}</p>
+      )}
+      {statusCode === "password-updated" && (
+        <p className="admin-success" role="status">Password updated. Sign in with your new password.</p>
       )}
 
       <form action={signIn} className="admin-form admin-login-form">
@@ -46,6 +52,7 @@ export default async function AdminLoginPage({ searchParams }: Props) {
         </label>
         <button type="submit">Sign in</button>
       </form>
+      <p className="admin-auth-link"><Link href="/admin/forgot-password">Forgot your password?</Link></p>
     </section>
   );
 }

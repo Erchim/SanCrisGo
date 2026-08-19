@@ -42,6 +42,60 @@ describe("Telegram webhook", () => {
     expect(moderation.reject).not.toHaveBeenCalled();
   });
 
+  it("normalizes whitespace in the configured moderation chat ID", async () => {
+    const moderation = { approve: vi.fn(), reject: vi.fn() };
+    const telegram = {
+      answerCallbackQuery: vi.fn(),
+      editMessageReplyMarkup: vi.fn(),
+      sendMessage: vi.fn(),
+    };
+    const summary = {
+      text: "Queue summary",
+      replyMarkup: { inline_keyboard: [[{ text: "Open", url: "https://sancrisgo.com/admin/events" }]] },
+    };
+    const handler = createTelegramWebhookHandler({
+      secret: "correct",
+      moderation,
+      telegram,
+      moderationChatId: " 123\n",
+      getWebsiteSummary: vi.fn().mockResolvedValue(summary),
+    });
+
+    await handler(new Request("http://localhost/api/telegram/webhook", {
+      method: "POST",
+      headers: { "x-telegram-bot-api-secret-token": "correct" },
+      body: JSON.stringify({ message: { text: "/site@sancrisgo_bot", chat: { id: 123 } } }),
+    }));
+
+    expect(telegram.sendMessage).toHaveBeenCalledWith("123", summary.text, summary.replyMarkup);
+  });
+
+  it("explains when /site is sent from a different chat without exposing the queue", async () => {
+    const moderation = { approve: vi.fn(), reject: vi.fn() };
+    const telegram = {
+      answerCallbackQuery: vi.fn(),
+      editMessageReplyMarkup: vi.fn(),
+      sendMessage: vi.fn(),
+    };
+    const getWebsiteSummary = vi.fn();
+    const handler = createTelegramWebhookHandler({
+      secret: "correct",
+      moderation,
+      telegram,
+      moderationChatId: "123",
+      getWebsiteSummary,
+    });
+
+    await handler(new Request("http://localhost/api/telegram/webhook", {
+      method: "POST",
+      headers: { "x-telegram-bot-api-secret-token": "correct" },
+      body: JSON.stringify({ message: { text: "/site", chat: { id: 456 } } }),
+    }));
+
+    expect(telegram.sendMessage).toHaveBeenCalledWith("456", "Команда /site недоступна в этом чате.");
+    expect(getWebsiteSummary).not.toHaveBeenCalled();
+  });
+
   it("preserves the existing Instagram approval callback", async () => {
     const moderation = { approve: vi.fn().mockResolvedValue({}), reject: vi.fn() };
     const telegram = {

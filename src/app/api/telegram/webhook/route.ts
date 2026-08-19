@@ -27,23 +27,43 @@ export function createTelegramWebhookHandler(dependencies: WebhookDependencies) 
     try { update = await request.json() as TelegramUpdate; } catch { return NextResponse.json({ ok: true }); }
 
     const message = update.message;
-    if (
-      isWebsiteQueueCommand(message?.text)
-      && dependencies.moderationChatId
-      && String(message?.chat?.id) === dependencies.moderationChatId
-      && dependencies.getWebsiteSummary
-      && dependencies.telegram.sendMessage
-    ) {
+    if (isWebsiteQueueCommand(message?.text)) {
+      const incomingChatId = typeof message?.chat?.id === "number" || typeof message?.chat?.id === "string"
+        ? String(message.chat.id).trim()
+        : undefined;
+      const configuredChatId = dependencies.moderationChatId?.trim();
+      const chatMatches = incomingChatId !== undefined
+        && Boolean(configuredChatId)
+        && incomingChatId === configuredChatId;
+
+      console.info("[telegram/site] command received", {
+        hasIncomingChatId: incomingChatId !== undefined,
+        hasConfiguredChatId: Boolean(configuredChatId),
+        chatMatches,
+      });
+
+      if (!dependencies.telegram.sendMessage || incomingChatId === undefined) {
+        return NextResponse.json({ ok: true });
+      }
+
+      if (!chatMatches || !dependencies.getWebsiteSummary) {
+        await dependencies.telegram.sendMessage(
+          incomingChatId,
+          "Команда /site недоступна в этом чате.",
+        );
+        return NextResponse.json({ ok: true });
+      }
+
       try {
         const summary = await dependencies.getWebsiteSummary();
         await dependencies.telegram.sendMessage(
-          dependencies.moderationChatId,
+          incomingChatId,
           summary.text,
           summary.replyMarkup,
         );
       } catch {
         await dependencies.telegram.sendMessage(
-          dependencies.moderationChatId,
+          incomingChatId,
           "Не удалось загрузить очередь сайта. Попробуйте команду /site ещё раз.",
         );
       }
