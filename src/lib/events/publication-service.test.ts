@@ -89,6 +89,28 @@ describe("EventPublicationService", () => {
     );
   });
 
+  it("publishes an approved image candidate without a caption", async () => {
+    const harness = createHarness({
+      candidate: {
+        id: "candidate-1",
+        status: "approved",
+        mediaPath: "candidates/event.jpg",
+        originalText: "",
+      },
+    });
+
+    await expect(harness.service.publishCandidateToInstagram("candidate-1")).resolves.toEqual({
+      publicationId: "publication-1",
+      instagramMediaId: "instagram-media-1",
+      alreadyPublished: false,
+    });
+    expect(harness.repository.claimForPublishing).toHaveBeenCalledWith("publication-1", "");
+    expect(harness.instagramPublisher.publishImage).toHaveBeenCalledWith({
+      imageUrl: "https://storage.example/signed.jpg?secret=temporary-secret",
+      caption: "",
+    });
+  });
+
   it("rejects a candidate that is not approved", async () => {
     const harness = createHarness({
       candidate: {

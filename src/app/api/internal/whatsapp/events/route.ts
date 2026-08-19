@@ -42,7 +42,7 @@ export function createWhatsAppEventsHandler(
     const sourceGroupId = value("sourceGroupId").trim();
     const caption = value("caption").trim();
     const receivedAt = value("receivedAt").trim();
-    if (!sourceMessageId || !sourceGroupId || !caption || !receivedAt || Number.isNaN(Date.parse(receivedAt))) return invalid();
+    if (!sourceMessageId || !sourceGroupId || !receivedAt || Number.isNaN(Date.parse(receivedAt))) return invalid();
 
     const input: WhatsAppEventInput = {
       image, extension, sourceMessageId, sourceGroupId, caption,

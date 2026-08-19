@@ -101,8 +101,8 @@ export class InstagramPublisher {
   private async createContainer(imageUrl: string, caption: string): Promise<string> {
     const fields: Record<string, string> = {
       image_url: imageUrl,
-      caption,
     };
+    if (caption) fields.caption = caption;
     if (this.locationId) fields.location_id = this.locationId;
 
     const response = await this.post<IdResponse>(`/${this.igUserId}/media`, fields);

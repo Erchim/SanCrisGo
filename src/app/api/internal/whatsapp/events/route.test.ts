@@ -87,6 +87,21 @@ describe("WhatsApp event ingestion endpoint", () => {
     expect(deps.ingester.markModerationSent).toHaveBeenCalledWith("candidate-1");
   });
 
+  it("persists and dispatches an image without a caption", async () => {
+    const deps = dependencies();
+    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(
+      formRequest({ caption: "" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
+      sourceMessageId: "message-1",
+      caption: "",
+      extension: "jpg",
+    }));
+    expect(deps.dispatch).toHaveBeenCalledWith("candidate-1");
+  });
+
   it("treats a previously moderated duplicate sourceMessageId as idempotent", async () => {
     const deps = dependencies({ candidateId: "existing-candidate" });
     const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);

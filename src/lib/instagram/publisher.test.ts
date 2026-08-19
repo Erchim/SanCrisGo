@@ -77,6 +77,22 @@ describe("InstagramPublisher", () => {
     expect(containerBody.get("location_id")).toBe("123456789");
   });
 
+  it("omits the optional caption field when it is empty", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ id: "creation-1" }))
+      .mockResolvedValueOnce(jsonResponse({ status_code: "FINISHED" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "instagram-media-1" }));
+    const publisher = new InstagramPublisher(config, { fetch: fetchMock });
+
+    await publisher.publishImage({
+      imageUrl: "https://signed.example/event.jpg",
+      caption: "",
+    });
+
+    const containerBody = fetchMock.mock.calls[0][1].body as URLSearchParams;
+    expect(containerBody.has("caption")).toBe(false);
+  });
+
   it("rejects a non-numeric location ID", () => {
     expect(() => new InstagramPublisher({
       ...config,
