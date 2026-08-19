@@ -3,12 +3,19 @@ import { createEventModerationService, type EventModerationService } from "@/lib
 import { secretsMatch } from "@/lib/server-secret";
 import { createTelegramClientFromEnv, type TelegramClient } from "@/lib/telegram/client";
 import { parseModerationCallback } from "@/lib/telegram/moderation";
+import { getWebsiteQueueSummary, isWebsiteQueueCommand, type WebsiteQueueSummary } from "@/lib/telegram/website-queue";
 
-interface TelegramUpdate { callback_query?: { id?: unknown; data?: unknown; message?: { message_id?: unknown; chat?: { id?: unknown } } } }
+interface TelegramUpdate {
+  callback_query?: { id?: unknown; data?: unknown; message?: { message_id?: unknown; chat?: { id?: unknown } } };
+  message?: { text?: unknown; chat?: { id?: unknown } };
+}
 type WebhookDependencies = {
   secret: string | undefined;
   moderation: Pick<EventModerationService, "approve" | "reject">;
-  telegram: Pick<TelegramClient, "answerCallbackQuery" | "editMessageReplyMarkup">;
+  telegram: Pick<TelegramClient, "answerCallbackQuery" | "editMessageReplyMarkup">
+    & Partial<Pick<TelegramClient, "sendMessage">>;
+  moderationChatId?: string;
+  getWebsiteSummary?: () => Promise<WebsiteQueueSummary>;
 };
 
 export function createTelegramWebhookHandler(dependencies: WebhookDependencies) {
@@ -18,6 +25,31 @@ export function createTelegramWebhookHandler(dependencies: WebhookDependencies) 
     }
     let update: TelegramUpdate;
     try { update = await request.json() as TelegramUpdate; } catch { return NextResponse.json({ ok: true }); }
+
+    const message = update.message;
+    if (
+      isWebsiteQueueCommand(message?.text)
+      && dependencies.moderationChatId
+      && String(message?.chat?.id) === dependencies.moderationChatId
+      && dependencies.getWebsiteSummary
+      && dependencies.telegram.sendMessage
+    ) {
+      try {
+        const summary = await dependencies.getWebsiteSummary();
+        await dependencies.telegram.sendMessage(
+          dependencies.moderationChatId,
+          summary.text,
+          summary.replyMarkup,
+        );
+      } catch {
+        await dependencies.telegram.sendMessage(
+          dependencies.moderationChatId,
+          "Не удалось загрузить очередь сайта. Попробуйте команду /site ещё раз.",
+        );
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     const query = update.callback_query;
     const parsed = parseModerationCallback(query?.data);
     if (!parsed || typeof query?.id !== "string") return NextResponse.json({ ok: true });
@@ -47,5 +79,7 @@ export async function POST(request: Request) {
     secret: process.env.TELEGRAM_WEBHOOK_SECRET,
     moderation: createEventModerationService(),
     telegram: createTelegramClientFromEnv(),
+    moderationChatId: process.env.TELEGRAM_MODERATION_CHAT_ID,
+    getWebsiteSummary: getWebsiteQueueSummary,
   })(request);
 }

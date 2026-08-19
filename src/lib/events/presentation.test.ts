@@ -11,6 +11,8 @@ describe("event presentation", () => {
     expect(formatEventDate("2026-08-19T00:30:00.000Z")).toBe("Tuesday, August 18, 2026");
     expect(formatEventTimeRange("2026-08-19T00:30:00.000Z", "2026-08-19T02:00:00.000Z"))
       .toBe("6:30 PM–8:00 PM");
+    expect(formatEventDate("2026-08-18")).toBe("Tuesday, August 18, 2026");
+    expect(formatEventTimeRange(null, null)).toBe("Time to be confirmed");
   });
 
   it("turns stored event types into labels", () => {

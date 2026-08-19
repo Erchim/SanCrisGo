@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveEventDateSelection } from "./date-filter";
+import { localEventDateTimeToISOString, resolveEventDateSelection } from "./date-filter";
 
 describe("resolveEventDateSelection", () => {
   const tuesdayEveningInChiapas = new Date("2026-08-19T00:30:00.000Z");
@@ -54,5 +54,12 @@ describe("resolveEventDateSelection", () => {
       dateInput: "2026-08-31",
     });
     expect(resolveEventDateSelection(undefined, "2026-02-30", tuesdayEveningInChiapas).filter).toBe("today");
+  });
+
+  it("converts optional event form time in the San Cristobal time zone", () => {
+    expect(localEventDateTimeToISOString("2026-08-18", "18:30"))
+      .toBe("2026-08-19T00:30:00.000Z");
+    expect(localEventDateTimeToISOString("2026-02-30", "18:30")).toBeNull();
+    expect(localEventDateTimeToISOString("2026-08-18", "25:00")).toBeNull();
   });
 });

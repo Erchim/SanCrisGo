@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { type EventDateSelection } from "@/lib/events/date-filter";
+import { EVENT_TIME_ZONE, type EventDateSelection } from "@/lib/events/date-filter";
+import { getPublicEventMediaUrl } from "@/lib/supabase/event-media";
 import { createPublicSupabaseClient } from "@/lib/supabase/server";
 
 export type PublicEventListItem = {
@@ -11,9 +12,12 @@ export type PublicEventListItem = {
   summary: string | null;
   venue_name: string | null;
   address: string | null;
-  starts_at: string;
+  starts_on: string;
+  starts_at: string | null;
+  ends_on: string | null;
   ends_at: string | null;
   price_text: string | null;
+  cover_image_url: string | null;
   published_at: string;
   updated_at: string;
 };
@@ -26,9 +30,51 @@ export type PublicEvent = PublicEventListItem & {
   seo_title: string | null;
   seo_description: string | null;
   source_url: string | null;
+  media: Array<{
+    url: string;
+    altText: string | null;
+    sortOrder: number;
+  }>;
 };
 
-const listFields = "id,title,slug,event_type,summary,venue_name,address,starts_at,ends_at,price_text,published_at,updated_at";
+type EventListRow = Omit<PublicEventListItem, "cover_image_url"> & {
+  cover_image_path: string | null;
+};
+
+type EventDetailRow = EventListRow & {
+  description: string | null;
+  ticket_url: string | null;
+  organizer_name: string | null;
+  organizer_url: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  source_url: string | null;
+  event_media: Array<{
+    storage_path: string;
+    alt_text: string | null;
+    sort_order: number;
+  }>;
+};
+
+const listFields = "id,title,slug,event_type,summary,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,cover_image_path,published_at,updated_at";
+const localDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: EVENT_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function selectionDate(instant: string): string {
+  return localDateFormatter.format(new Date(instant));
+}
+
+function mapListRow(row: EventListRow): PublicEventListItem {
+  const { cover_image_path: coverImagePath, ...event } = row;
+  return {
+    ...event,
+    cover_image_url: getPublicEventMediaUrl(coverImagePath),
+  };
+}
 
 export async function getPublishedEvents(
   selection: EventDateSelection,
@@ -37,31 +83,54 @@ export async function getPublishedEvents(
     .from("events")
     .select(listFields)
     .eq("publication_status", "published")
-    .order("starts_at", { ascending: true });
+    .order("starts_on", { ascending: true })
+    .order("starts_at", { ascending: true, nullsFirst: false });
+
+  const startDate = selectionDate(selection.start);
 
   if (selection.end) {
+    const endDate = selectionDate(selection.end);
     query = query
-      .lt("starts_at", selection.end)
-      .or(`ends_at.gte.${selection.start},starts_at.gte.${selection.start}`);
+      .lt("starts_on", endDate)
+      .or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
   } else {
-    query = query.or(`ends_at.gte.${selection.start},starts_at.gte.${selection.start}`);
+    query = query.or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
   }
 
   const { data, error } = await query;
   if (error) throw new Error(`Unable to load published events: ${error.message}`);
-  return data as PublicEventListItem[];
+  return ((data ?? []) as EventListRow[]).map(mapListRow);
 }
 
 export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent | null> => {
   const { data, error } = await createPublicSupabaseClient()
     .from("events")
-    .select(`${listFields},description,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url`)
+    .select(`${listFields},description,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,event_media(storage_path,alt_text,sort_order)`)
     .eq("slug", slug)
     .eq("publication_status", "published")
+    .order("sort_order", { referencedTable: "event_media", ascending: true })
     .maybeSingle();
 
   if (error) throw new Error(`Unable to load published event: ${error.message}`);
-  return data as PublicEvent | null;
+  if (!data) return null;
+
+  const row = data as EventDetailRow;
+  const { event_media: mediaRows, description, ticket_url, organizer_name, organizer_url, seo_title, seo_description, source_url, ...listRow } = row;
+  return {
+    ...mapListRow(listRow),
+    description,
+    ticket_url,
+    organizer_name,
+    organizer_url,
+    seo_title,
+    seo_description,
+    source_url,
+    media: mediaRows.map((media) => ({
+      url: getPublicEventMediaUrl(media.storage_path) ?? "",
+      altText: media.alt_text,
+      sortOrder: media.sort_order,
+    })).filter((media) => media.url),
+  };
 });
 
 export async function getPublishedEventsForSitemap(): Promise<

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { PublicEventListItem } from "@/lib/events/public-events";
 import {
@@ -10,8 +11,19 @@ export function EventCard({ event }: { event: PublicEventListItem }) {
   return (
     <li className="event-card">
       <article>
+        {event.cover_image_url && (
+          <Link className="event-card-media" href={`/events/${event.slug}`} tabIndex={-1} aria-hidden="true">
+            <Image
+              alt=""
+              src={event.cover_image_url}
+              width={960}
+              height={540}
+              sizes="(max-width: 52rem) 100vw, 52rem"
+            />
+          </Link>
+        )}
         <div className="event-card-date">
-          <time dateTime={event.starts_at}>{formatEventDate(event.starts_at, true)}</time>
+          <time dateTime={event.starts_at ?? event.starts_on}>{formatEventDate(event.starts_on, true)}</time>
           <span>{formatEventTimeRange(event.starts_at, event.ends_at)}</span>
         </div>
         <div className="event-card-content">

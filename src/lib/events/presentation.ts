@@ -8,8 +8,23 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   year: "numeric",
 });
 
+const dateOnlyFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
 const shortDateFormatter = new Intl.DateTimeFormat("en", {
   timeZone: EVENT_TIME_ZONE,
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+const shortDateOnlyFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
   weekday: "short",
   month: "short",
   day: "numeric",
@@ -34,11 +49,17 @@ export function formatEventType(eventType: string): string {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export function formatEventDate(startsAt: string, short = false): string {
-  return (short ? shortDateFormatter : dateFormatter).format(new Date(startsAt));
+export function formatEventDate(startsOn: string, short = false): string {
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(startsOn);
+  const formatter = isDateOnly
+    ? (short ? shortDateOnlyFormatter : dateOnlyFormatter)
+    : (short ? shortDateFormatter : dateFormatter);
+  const value = isDateOnly ? `${startsOn}T12:00:00.000Z` : startsOn;
+  return formatter.format(new Date(value));
 }
 
-export function formatEventTimeRange(startsAt: string, endsAt: string | null): string {
+export function formatEventTimeRange(startsAt: string | null, endsAt: string | null): string {
+  if (!startsAt) return "Time to be confirmed";
   const start = new Date(startsAt);
   const startTime = timeFormatter.format(start);
   if (!endsAt) return startTime;

@@ -2,8 +2,12 @@ import "server-only";
 
 const SAFE_ERROR = "Telegram request failed.";
 
-export interface InlineKeyboardMarkup {
-  inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+export type CallbackInlineKeyboardButton = { text: string; callback_data: string };
+export type UrlInlineKeyboardButton = { text: string; url: string };
+export type InlineKeyboardButton = CallbackInlineKeyboardButton | UrlInlineKeyboardButton;
+
+export interface InlineKeyboardMarkup<TButton extends InlineKeyboardButton = InlineKeyboardButton> {
+  inline_keyboard: Array<Array<TButton>>;
 }
 
 export interface InputMediaPhoto {
