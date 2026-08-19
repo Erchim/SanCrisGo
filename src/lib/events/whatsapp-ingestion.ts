@@ -5,16 +5,20 @@ import { createServiceRoleSupabaseClient } from "../supabase/service-role";
 
 const BUCKET = "event-media";
 
-export interface WhatsAppEventInput {
+export interface WhatsAppEventImageInput {
   image: File;
+  sourceMessageId: string;
+  receivedAt: string;
+  extension: string;
+}
+
+export interface WhatsAppEventInput {
+  images: WhatsAppEventImageInput[];
   sourceGroupId: string;
   sourceGroupName: string;
   sourceSenderId: string;
   sourceSenderName: string;
-  sourceMessageId: string;
   caption: string;
-  receivedAt: string;
-  extension: string;
 }
 
 export interface IngestionResult {
@@ -31,17 +35,29 @@ export class WhatsAppEventIngester {
   }
 
   async ingest(input: WhatsAppEventInput): Promise<IngestionResult> {
-    const existing = await this.findCandidate(input.sourceMessageId);
+    const anchorMessageId = input.images[0]?.sourceMessageId;
+    if (!anchorMessageId) throw new Error("image_missing");
+
+    const existing = await this.findCandidate(anchorMessageId);
     if (existing) return { candidateId: existing.id };
 
     const candidateId = randomUUID();
-    const mediaPath = `whatsapp/${candidateId}/source.${input.extension}`;
-    const bytes = await input.image.arrayBuffer();
-    const upload = await this.client.storage.from(BUCKET).upload(mediaPath, bytes, {
-      contentType: input.image.type,
-      upsert: false,
-    });
-    if (upload.error) throw new Error("media_upload_failed");
+    const mediaPaths = input.images.map((image, sequence) =>
+      `whatsapp/${candidateId}/${String(sequence).padStart(3, "0")}.${image.extension}`
+    );
+    const uploadedPaths: string[] = [];
+    for (const [index, image] of input.images.entries()) {
+      const bytes = await image.image.arrayBuffer();
+      const upload = await this.client.storage.from(BUCKET).upload(mediaPaths[index], bytes, {
+        contentType: image.image.type,
+        upsert: false,
+      });
+      if (upload.error) {
+        await this.removeMedia(uploadedPaths);
+        throw new Error("media_upload_failed");
+      }
+      uploadedPaths.push(mediaPaths[index]);
+    }
 
     const collectionTimestamp = new Date().toISOString();
     const inserted = await this.client.from("event_candidates").insert({
@@ -51,33 +67,35 @@ export class WhatsAppEventIngester {
       source_group_name: input.sourceGroupName,
       source_sender_id: input.sourceSenderId,
       source_sender_name: input.sourceSenderName,
-      anchor_message_id: input.sourceMessageId,
+      anchor_message_id: anchorMessageId,
       original_text: input.caption,
-      media_path: mediaPath,
+      media_path: mediaPaths[0],
       status: "pending",
       collection_started_at: collectionTimestamp,
       collection_closed_at: collectionTimestamp,
     });
     if (inserted.error) {
-      await this.removeMedia(mediaPath);
-      const duplicate = await this.findCandidate(input.sourceMessageId);
+      await this.removeMedia(mediaPaths);
+      const duplicate = await this.findCandidate(anchorMessageId);
       if (duplicate) return { candidateId: duplicate.id };
       throw new Error("candidate_insert_failed");
     }
 
-    const message = await this.client.from("event_candidate_messages").insert({
-      candidate_id: candidateId,
-      source_message_id: input.sourceMessageId,
-      message_type: "image",
-      text: input.caption,
-      media_path: mediaPath,
-      sender_id: input.sourceSenderId,
-      received_at: input.receivedAt,
-      sequence: 0,
-    });
+    const message = await this.client.from("event_candidate_messages").insert(
+      input.images.map((image, sequence) => ({
+        candidate_id: candidateId,
+        source_message_id: image.sourceMessageId,
+        message_type: "image",
+        text: sequence === 0 ? input.caption : "",
+        media_path: mediaPaths[sequence],
+        sender_id: input.sourceSenderId,
+        received_at: image.receivedAt,
+        sequence,
+      })),
+    );
     if (message.error) {
       await this.client.from("event_candidates").delete().eq("id", candidateId);
-      await this.removeMedia(mediaPath);
+      await this.removeMedia(mediaPaths);
       throw new Error("message_insert_failed");
     }
     return { candidateId };
@@ -121,7 +139,8 @@ export class WhatsAppEventIngester {
     return result.data;
   }
 
-  private async removeMedia(path: string): Promise<void> {
-    try { await this.client.storage.from(BUCKET).remove([path]); } catch { /* best effort */ }
+  private async removeMedia(paths: string[]): Promise<void> {
+    if (paths.length === 0) return;
+    try { await this.client.storage.from(BUCKET).remove(paths); } catch { /* best effort */ }
   }
 }

@@ -21,7 +21,7 @@ function createHarness(options: {
   const candidate = options.candidate === undefined ? {
     id: "candidate-1",
     status: "approved",
-    mediaPath: "candidates/event.jpg",
+    mediaPaths: ["candidates/event.jpg"],
     originalText: "Original event caption",
   } : options.candidate;
   const publication = options.publication ?? {
@@ -42,10 +42,11 @@ function createHarness(options: {
     publishImage: options.instagramError
       ? vi.fn().mockRejectedValue(options.instagramError)
       : vi.fn().mockResolvedValue("instagram-media-1"),
+    publishCarousel: vi.fn().mockResolvedValue("instagram-carousel-1"),
   };
-  const createSignedUrl = vi.fn().mockResolvedValue(
+  const createSignedUrl = vi.fn((_mediaPath: string) => Promise.resolve(
     "https://storage.example/signed.jpg?secret=temporary-secret",
-  );
+  ));
   const dependencies: EventPublicationServiceDependencies = {
     repository,
     instagramPublisher,
@@ -94,7 +95,7 @@ describe("EventPublicationService", () => {
       candidate: {
         id: "candidate-1",
         status: "approved",
-        mediaPath: "candidates/event.jpg",
+        mediaPaths: ["candidates/event.jpg"],
         originalText: "",
       },
     });
@@ -116,7 +117,7 @@ describe("EventPublicationService", () => {
       candidate: {
         id: "candidate-1",
         status: "pending",
-        mediaPath: "candidates/event.jpg",
+        mediaPaths: ["candidates/event.jpg"],
         originalText: "Caption",
       },
     });
@@ -126,18 +127,18 @@ describe("EventPublicationService", () => {
     expect(harness.repository.getOrCreateInstagramPublication).not.toHaveBeenCalled();
   });
 
-  it("rejects a candidate without media_path", async () => {
+  it("rejects a candidate without media", async () => {
     const harness = createHarness({
       candidate: {
         id: "candidate-1",
         status: "approved",
-        mediaPath: null,
+        mediaPaths: [],
         originalText: "Caption",
       },
     });
 
     await expect(harness.service.publishCandidateToInstagram("candidate-1"))
-      .rejects.toThrow("Event candidate media_path is required.");
+      .rejects.toThrow("Event candidate media is required.");
     expect(harness.repository.getOrCreateInstagramPublication).not.toHaveBeenCalled();
   });
 
@@ -158,6 +159,34 @@ describe("EventPublicationService", () => {
     });
     expect(harness.repository.claimForPublishing).not.toHaveBeenCalled();
     expect(harness.createSignedUrl).not.toHaveBeenCalled();
+    expect(harness.instagramPublisher.publishImage).not.toHaveBeenCalled();
+  });
+
+  it("publishes multiple candidate images as an ordered carousel", async () => {
+    const harness = createHarness({
+      candidate: {
+        id: "candidate-1",
+        status: "approved",
+        mediaPaths: ["candidates/one.jpg", "candidates/two.jpg", "candidates/three.jpg"],
+        originalText: "Album caption",
+      },
+    });
+    vi.mocked(harness.createSignedUrl)
+      .mockImplementation((path: string) => Promise.resolve(`https://storage.example/${path}`));
+
+    await expect(harness.service.publishCandidateToInstagram("candidate-1")).resolves.toEqual({
+      publicationId: "publication-1",
+      instagramMediaId: "instagram-carousel-1",
+      alreadyPublished: false,
+    });
+    expect(harness.instagramPublisher.publishCarousel).toHaveBeenCalledWith({
+      imageUrls: [
+        "https://storage.example/candidates/one.jpg",
+        "https://storage.example/candidates/two.jpg",
+        "https://storage.example/candidates/three.jpg",
+      ],
+      caption: "Album caption",
+    });
     expect(harness.instagramPublisher.publishImage).not.toHaveBeenCalled();
   });
 

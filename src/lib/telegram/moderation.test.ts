@@ -16,7 +16,7 @@ describe("Telegram moderation", () => {
     expect(callbackData("approve", id)).toBe(`evt:a:${id}`);
   });
   it("uses a separate text message and leaves buttons clear for long captions", async () => {
-    const telegram = { sendPhoto: vi.fn().mockResolvedValue({}), sendMessage: vi.fn().mockResolvedValue({}) };
+    const telegram = { sendPhoto: vi.fn().mockResolvedValue({}), sendMessage: vi.fn().mockResolvedValue({}), sendMediaGroup: vi.fn().mockResolvedValue({}) };
     const dispatcher = new TelegramModerationDispatcher({
       getCandidate: vi.fn().mockResolvedValue({ id, status: "pending", media_path: "event.jpg", original_text: "x".repeat(1100), source_group_name: "Group", source_sender_name: "Sender" }),
       createSignedUrl: vi.fn().mockResolvedValue("https://signed.example/private"), telegram, chatId: "chat",
@@ -24,6 +24,42 @@ describe("Telegram moderation", () => {
     await dispatcher.sendCandidateForModeration(id);
     expect(telegram.sendPhoto).toHaveBeenCalledWith("chat", "https://signed.example/private");
     expect(telegram.sendMessage.mock.calls[0][2]).toEqual(moderationKeyboard(id));
+  });
+  it("sends every album image before the moderation controls", async () => {
+    const telegram = {
+      sendPhoto: vi.fn().mockResolvedValue({}),
+      sendMessage: vi.fn().mockResolvedValue({}),
+      sendMediaGroup: vi.fn().mockResolvedValue({}),
+    };
+    const createSignedUrl = vi.fn((path: string) => Promise.resolve(`https://signed.example/${path}`));
+    const dispatcher = new TelegramModerationDispatcher({
+      getCandidate: vi.fn().mockResolvedValue({
+        id,
+        status: "pending",
+        media_path: "one.jpg",
+        media_paths: ["one.jpg", "two.jpg", "three.jpg"],
+        original_text: "Album caption",
+        source_group_name: "Group",
+        source_sender_name: "Sender",
+      }),
+      createSignedUrl,
+      telegram,
+      chatId: "chat",
+    });
+
+    await dispatcher.sendCandidateForModeration(id);
+
+    expect(telegram.sendMediaGroup).toHaveBeenCalledWith("chat", [
+      { type: "photo", media: "https://signed.example/one.jpg" },
+      { type: "photo", media: "https://signed.example/two.jpg" },
+      { type: "photo", media: "https://signed.example/three.jpg" },
+    ]);
+    expect(telegram.sendMessage).toHaveBeenCalledWith(
+      "chat",
+      expect.stringContaining("Album caption"),
+      moderationKeyboard(id),
+    );
+    expect(telegram.sendPhoto).not.toHaveBeenCalled();
   });
   it("does not expose the bot token or signed URL in Telegram errors", async () => {
     const token = "very-secret-bot-token";
@@ -51,6 +87,7 @@ describe("Telegram moderation", () => {
       telegram: {
         sendPhoto: "sendPhoto" in overrides ? overrides.sendPhoto : vi.fn().mockResolvedValue({}),
         sendMessage: vi.fn().mockResolvedValue({}),
+        sendMediaGroup: vi.fn().mockResolvedValue({}),
       },
       chatId: "chat",
     });
