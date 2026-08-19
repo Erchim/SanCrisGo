@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublishedEvent, type PublicEvent } from "@/lib/events/public-events";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = event.seo_title ?? event.title;
   const description = event.seo_description
     ?? event.summary
-    ?? `${event.title} in San Cristóbal de las Casas on ${formatEventDate(event.starts_at)}.`;
+    ?? `${event.title} in San Cristóbal de las Casas on ${formatEventDate(event.starts_on)}.`;
   const canonical = getAbsoluteUrl(`/events/${event.slug}`);
 
   return {
@@ -36,6 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       ...(canonical && { url: canonical }),
+      ...(event.media[0] && { images: [{ url: event.media[0].url, alt: event.media[0].altText ?? event.title }] }),
     },
   };
 }
@@ -61,11 +63,12 @@ function eventJsonLd(event: PublicEvent) {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
-    startDate: event.starts_at,
-    ...(event.ends_at && { endDate: event.ends_at }),
+    startDate: event.starts_at ?? event.starts_on,
+    ...((event.ends_at || event.ends_on) && { endDate: event.ends_at ?? event.ends_on }),
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     ...((event.summary || event.description) && { description: event.summary || event.description }),
+    ...(event.media.length > 0 && { image: event.media.map((media) => media.url) }),
     ...(canonical && { url: canonical }),
     ...(location && { location }),
     ...(event.organizer_name && {
@@ -99,11 +102,28 @@ export default async function EventPage({ params }: Props) {
         {event.summary && <p className="lede">{event.summary}</p>}
       </header>
 
+      {event.media.length > 0 && (
+        <section className="event-gallery" aria-label="Event images">
+          {event.media.map((media, index) => (
+            <figure key={`${media.sortOrder}-${media.url}`}>
+              <Image
+                alt={media.altText || `${event.title} — image ${index + 1}`}
+                src={media.url}
+                width={1200}
+                height={1200}
+                sizes="(max-width: 48rem) 100vw, 48rem"
+                priority={index === 0}
+              />
+            </figure>
+          ))}
+        </section>
+      )}
+
       <div className="event-details">
         <section aria-labelledby="event-when-heading">
           <h2 id="event-when-heading">When</h2>
           <p>
-            <time dateTime={event.starts_at}>{formatEventDate(event.starts_at)}</time><br />
+            <time dateTime={event.starts_at ?? event.starts_on}>{formatEventDate(event.starts_on)}</time><br />
             <span>{formatEventTimeRange(event.starts_at, event.ends_at)}</span>
           </p>
         </section>

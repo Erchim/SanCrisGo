@@ -13,7 +13,7 @@ All core content uses `draft`, `pending`, `published`, `rejected`, or `archived`
 ## Core content
 
 - `places` represents both literal destinations and useful local listings. `place_type` stays flexible text. Coordinates and price level are validated. Variable hours use JSONB, while important display and discovery attributes remain columns. Public-content and tag slugs are constrained to bounded, lowercase ASCII URL tokens separated by single hyphens.
-- `events` holds time-sensitive listings. It can reference a `place`, or use fallback venue/address text. End time cannot precede start time.
+- `events` holds time-sensitive listings. `starts_on` is the required local calendar date; `starts_at` is optional so a verified date can be published while its time is still unknown. Optional end date/time fields are constrained to the same `America/Mexico_City` calendar interpretation and cannot precede the start. An event can reference a `place`, or use fallback venue/address text.
 - `guides` stores Markdown editorial source and an explicit language. Guides are the expected first SEO traffic layer.
 - `tags` is a shared vocabulary connected through `place_tags`, `event_tags`, and `guide_tags`.
 
@@ -25,10 +25,16 @@ Join rows cascade when their parent content is removed. An event's optional `pla
 
 ## Freshness and media
 
-Core rows include source, verification, creation, update, and publication timestamps where relevant. Automated stale-content checks are deferred. `cover_image_path` is an eventual Supabase Storage object path, not a public URL or a media-management system.
+Core rows include source, verification, creation, update, and publication timestamps where relevant. Automated stale-content checks are deferred.
+
+Incoming candidate images remain private in `event-media`. Website publication copies the candidate's 1–10 ordered images into the public `event-public-media` bucket. `event_media` stores their event relationship, order, and optional alt text; `events.cover_image_path` points to the first public image for list cards.
+
+Website review does not mutate Instagram moderation state. A website draft or completed publication uses the existing `event_publications` row with `channel = 'website'`. Absence of that row means unreviewed; `event_candidate_website_skips` records candidates intentionally skipped only for the website.
 
 ## Migration order
 
 1. `202608130001_initial_schema.sql` creates extensions, functions, tables, constraints, indexes, and timestamp/Auth triggers.
 2. `202608130002_rls_policies.sql` installs authorization helpers, privilege protection, grants, RLS, and policies.
 3. `supabase/seed.sql` inserts only neutral reusable tags.
+
+Later additive migrations extend this baseline for event ingestion, Telegram moderation, the public event catalog, and the website event-admin workflow. The migration directory remains the complete executable history.

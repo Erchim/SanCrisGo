@@ -81,8 +81,8 @@ function timeZoneOffsetAt(instant: Date): number {
   return representedAsUtc - instant.getTime();
 }
 
-function localMidnightAsUtc(date: LocalDate): Date {
-  const localTimestamp = Date.UTC(date.year, date.month - 1, date.day);
+function localDateTimeAsUtc(date: LocalDate, hour = 0, minute = 0): Date {
+  const localTimestamp = Date.UTC(date.year, date.month - 1, date.day, hour, minute);
   let utcTimestamp = localTimestamp;
 
   // A second pass handles an offset change close to the requested local time.
@@ -91,6 +91,10 @@ function localMidnightAsUtc(date: LocalDate): Date {
   }
 
   return new Date(utcTimestamp);
+}
+
+function localMidnightAsUtc(date: LocalDate): Date {
+  return localDateTimeAsUtc(date);
 }
 
 function localWeekday(date: LocalDate): number {
@@ -117,6 +121,21 @@ function dateInputValue(date: LocalDate): string {
   return `${date.year.toString().padStart(4, "0")}-${date.month
     .toString()
     .padStart(2, "0")}-${date.day.toString().padStart(2, "0")}`;
+}
+
+export function localEventDateTimeToISOString(
+  dateInput: string,
+  timeInput: string,
+): string | null {
+  const date = localDateFromInput(dateInput);
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeInput);
+  if (!date || !timeMatch) return null;
+
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  if (hour > 23 || minute > 59) return null;
+
+  return localDateTimeAsUtc(date, hour, minute).toISOString();
 }
 
 function daySelection(

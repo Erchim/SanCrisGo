@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const supabaseHostname = (() => {
+  try {
+    return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname : undefined;
+  } catch {
+    return undefined;
+  }
+})();
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -29,6 +36,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: supabaseHostname ? {
+    remotePatterns: [{
+      protocol: "https",
+      hostname: supabaseHostname,
+      pathname: "/storage/v1/object/**",
+    }],
+  } : undefined,
   async headers() {
     return [
       {

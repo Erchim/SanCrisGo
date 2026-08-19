@@ -24,6 +24,18 @@ npm run dev
 
 Fill `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env.local` with the values for your Supabase project. Do not commit that file or real credentials.
 
+## Website event admin
+
+Active Supabase Auth profiles with the `staff` or `owner` role can sign in at
+`/admin/login`. `/admin/events` is the single website queue for reviewing closed
+WhatsApp candidates, saving event drafts, skipping candidates for the website,
+and publishing independently from Instagram. A known date is required; time is
+optional.
+
+In the configured Telegram moderation chat, `/site` returns current queue totals
+and one button linking to `/admin/events`. Existing Instagram moderation buttons
+and callbacks remain separate.
+
 ## Security baseline
 
 The public frontend sends a baseline set of security headers on every route: a

@@ -2,7 +2,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createEventMediaSignedUrl } from "../supabase/event-media";
 import { createServiceRoleSupabaseClient } from "../supabase/service-role";
-import { createTelegramClientFromEnv, type InlineKeyboardMarkup, type TelegramClient } from "./client";
+import {
+  createTelegramClientFromEnv,
+  type CallbackInlineKeyboardButton,
+  type InlineKeyboardMarkup,
+  type TelegramClient,
+} from "./client";
 
 const CAPTION_LIMIT = 1024;
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
@@ -87,7 +92,7 @@ export class TelegramModerationDispatcher {
   }
 }
 
-export function moderationKeyboard(id: string): InlineKeyboardMarkup {
+export function moderationKeyboard(id: string): InlineKeyboardMarkup<CallbackInlineKeyboardButton> {
   return { inline_keyboard: [[{ text: "✅ Publish", callback_data: callbackData("approve", id) }, { text: "❌ Reject", callback_data: callbackData("reject", id) }]] };
 }
 function formatCandidate(c: DispatchCandidate) {
