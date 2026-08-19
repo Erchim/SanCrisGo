@@ -199,7 +199,8 @@ async function sendWebsiteQueueMessage(
 ) {
   console.info("[telegram/site] send started", { responseType });
   try {
-    await sendMessage(chatId, text, replyMarkup);
+    if (replyMarkup) await sendMessage(chatId, text, replyMarkup);
+    else await sendMessage(chatId, text);
     console.info("[telegram/site] send succeeded", { responseType });
   } catch (error) {
     console.error("[telegram/site] send failed", {

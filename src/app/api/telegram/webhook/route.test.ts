@@ -130,7 +130,7 @@ describe("Telegram webhook", () => {
         body: JSON.stringify({
           update_id: 987654,
           business_message: {
-            text: "/site",
+            text: "/site private-message-canary",
             chat: { id: "private-chat-123", username: "private-user" },
             from: { first_name: "Private Name" },
           },
@@ -139,7 +139,7 @@ describe("Telegram webhook", () => {
 
       const logs = JSON.stringify(info.mock.calls);
       expect(logs).toContain("business_message");
-      expect(logs).not.toContain("/site");
+      expect(logs).not.toContain("private-message-canary");
       expect(logs).not.toContain("987654");
       expect(logs).not.toContain("private-chat-123");
       expect(logs).not.toContain("private-user");
