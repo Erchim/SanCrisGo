@@ -43,7 +43,7 @@ describe("InstagramPublisher", () => {
     );
     const containerBody = fetchMock.mock.calls[0][1].body;
     expect(containerBody).toBeInstanceOf(URLSearchParams);
-    expect((containerBody as URLSearchParams).get("location_id")).toBe("216245671");
+    expect((containerBody as URLSearchParams).has("location_id")).toBe(false);
     expect(fetchMock.mock.calls[3][0]).toBe(
       "https://graph.instagram.com/v26.0/17841400000000000/media_publish",
     );
@@ -58,7 +58,7 @@ describe("InstagramPublisher", () => {
     expect(sleep).toHaveBeenCalledWith(10);
   });
 
-  it("allows the default location to be overridden", async () => {
+  it("includes a configured location ID", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ id: "creation-1" }))
       .mockResolvedValueOnce(jsonResponse({ status_code: "FINISHED" }))
