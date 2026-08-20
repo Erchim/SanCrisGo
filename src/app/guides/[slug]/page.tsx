@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: guide.published_at,
       modifiedTime: guide.updated_at,
       ...(canonical && { url: canonical }),
-      ...(image && { images: [{ url: image.src, alt: image.alt.en || guide.title }] }),
+      ...(image && !image.decorative && { images: [{ url: image.src, alt: image.alt.en }] }),
     },
   };
 }
