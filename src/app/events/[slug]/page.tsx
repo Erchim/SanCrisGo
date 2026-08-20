@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublishedEvent, type PublicEvent } from "@/lib/events/public-events";
+import { eventReturnHref } from "@/lib/events/navigation";
 import {
   formatEventDate,
   formatEventTimeRange,
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -82,8 +84,8 @@ function eventJsonLd(event: PublicEvent) {
   };
 }
 
-export default async function EventPage({ params }: Props) {
-  const { slug } = await params;
+export default async function EventPage({ params, searchParams }: Props) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const event = await getPublishedEvent(slug);
   if (!event) notFound();
 
@@ -92,12 +94,13 @@ export default async function EventPage({ params }: Props) {
   const sourceUrl = safeExternalUrl(event.source_url);
   const organizerUrl = safeExternalUrl(event.organizer_url);
   const phoneHref = safePhoneHref(event.contact_phone);
+  const backHref = eventReturnHref(typeof query.from === "string" ? query.from : undefined);
 
   return (
     <article className="event-article">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
 
-      <Link className="back-link" href="/events">← All events</Link>
+      <Link className="back-link" href={backHref}>← Back to events</Link>
       <header className="event-article-header">
         <p className="event-type">{formatEventType(event.event_type)}</p>
         <h1>{event.title}</h1>

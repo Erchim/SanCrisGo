@@ -168,12 +168,8 @@ export function resolveEventDateSelection(
 
   const today = localDateAt(now);
 
-  if (view === "upcoming") {
-    return {
-      filter: "upcoming",
-      label: "All upcoming events",
-      start: now.toISOString(),
-    };
+  if (view === "today") {
+    return daySelection("today", today, "Today");
   }
 
   if (view === "tomorrow") {
@@ -194,5 +190,9 @@ export function resolveEventDateSelection(
     };
   }
 
-  return daySelection("today", today, "Today");
+  return {
+    filter: "upcoming",
+    label: "All upcoming events",
+    start: now.toISOString(),
+  };
 }

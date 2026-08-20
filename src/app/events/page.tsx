@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EventCard } from "@/app/events/_components/event-card";
 import { resolveEventDateSelection, type EventDateFilter } from "@/lib/events/date-filter";
+import { eventListingHref } from "@/lib/events/navigation";
 import { getPublishedEvents } from "@/lib/events/public-events";
 import { getAbsoluteUrl } from "@/lib/site-url";
 
@@ -31,10 +32,10 @@ type Props = {
 };
 
 const quickFilters: { filter: Exclude<EventDateFilter, "date">; label: string; href: string }[] = [
-  { filter: "today", label: "Today", href: "/events" },
+  { filter: "upcoming", label: "All upcoming", href: "/events" },
+  { filter: "today", label: "Today", href: "/events?view=today" },
   { filter: "tomorrow", label: "Tomorrow", href: "/events?view=tomorrow" },
   { filter: "weekend", label: "This weekend", href: "/events?view=weekend" },
-  { filter: "upcoming", label: "All upcoming", href: "/events?view=upcoming" },
 ];
 
 function singleValue(value: string | string[] | undefined): string | undefined {
@@ -45,6 +46,7 @@ export default async function EventsPage({ searchParams }: Props) {
   const params = await searchParams;
   const selection = resolveEventDateSelection(singleValue(params.view), singleValue(params.date));
   const events = await getPublishedEvents(selection);
+  const listingHref = eventListingHref(selection);
 
   return (
     <section className="events-index">
@@ -94,7 +96,9 @@ export default async function EventsPage({ searchParams }: Props) {
           </div>
         ) : (
           <ul className="event-list">
-            {events.map((event) => <EventCard event={event} key={event.id} />)}
+            {events.map((event) => (
+              <EventCard event={event} key={event.id} listingHref={listingHref} />
+            ))}
           </ul>
         )}
       </section>
