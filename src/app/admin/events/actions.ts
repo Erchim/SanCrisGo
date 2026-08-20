@@ -125,7 +125,7 @@ export async function publishWebsiteEvent(formData: FormData) {
   revalidatePath(`/events/${slug}`);
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${candidateId}`);
-  redirect("/admin/events?filter=published&status=published");
+  redirect("/admin/events?status=published");
 }
 
 export async function skipWebsiteCandidate(formData: FormData) {

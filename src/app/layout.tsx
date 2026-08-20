@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const description = "Practical local guides to San Cristóbal de las Casas, Chiapas.";
+const description = "Practical local guides and events in San Cristóbal de las Casas, Chiapas.";
 const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
@@ -34,6 +34,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </nav>
         </header>
         <main>{children}</main>
+        <footer className="site-footer">
+          <div>
+            <p><strong>SanCrisGo</strong> · Practical local information for San Cristóbal de las Casas.</p>
+            <nav aria-label="Footer navigation">
+              <Link href="/events">Events</Link>
+              <Link href="/guides">Guides</Link>
+              <Link href="/image-credits">Image credits</Link>
+            </nav>
+          </div>
+        </footer>
       </body>
     </html>
   );

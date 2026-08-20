@@ -33,12 +33,14 @@ export default async function GuidesPage() {
           {guides.map((guide) => (
             <li className="guide-card" key={guide.id}>
               <article>
-                <p className="guide-category">{guide.category}</p>
-                <h2><Link href={`/guides/${guide.slug}`}>{guide.title}</Link></h2>
-                {guide.summary && <p className="guide-summary">{guide.summary}</p>}
-                {guide.last_verified_at && (
-                  <p className="guide-meta">Last verified <time dateTime={guide.last_verified_at}>{formatDate(guide.last_verified_at)}</time></p>
-                )}
+                <div className="guide-card-content">
+                  <p className="guide-category">{guide.category}</p>
+                  <h2><Link href={`/guides/${guide.slug}`}>{guide.title}</Link></h2>
+                  {guide.summary && <p className="guide-summary">{guide.summary}</p>}
+                  {guide.last_verified_at && (
+                    <p className="guide-meta">Last verified <time dateTime={guide.last_verified_at}>{formatDate(guide.last_verified_at)}</time></p>
+                  )}
+                </div>
               </article>
             </li>
           ))}
