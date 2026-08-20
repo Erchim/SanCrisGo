@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { runEventAiPrefillWorkflow } from "@/lib/events/event-ai-prefill-workflow";
 import { secretsMatch } from "@/lib/server-secret";
 import { WhatsAppEventIngester, type WhatsAppEventInput } from "@/lib/events/whatsapp-ingestion";
 import { sendCandidateForModeration } from "@/lib/telegram/moderation";
@@ -15,10 +16,22 @@ const IMAGE_EXTENSIONS: Record<string, string> = {
 
 type Ingester = Pick<WhatsAppEventIngester,
   "ingest" | "claimModerationDispatch" | "markModerationSent" | "releaseModerationDispatch">;
+type SchedulePrefill = (candidateId: string) => void;
+
+function scheduleAiPrefill(candidateId: string): void {
+  after(async () => {
+    try {
+      await runEventAiPrefillWorkflow(candidateId);
+    } catch {
+      console.error("[whatsapp-ingest] ai_prefill_failed");
+    }
+  });
+}
 
 export function createWhatsAppEventsHandler(
   ingester: Ingester,
   dispatch: (candidateId: string) => Promise<unknown>,
+  schedulePrefill: SchedulePrefill = scheduleAiPrefill,
 ) {
   return async (request: Request) => {
     const authorization = request.headers.get("authorization");
@@ -80,6 +93,10 @@ export function createWhatsAppEventsHandler(
 
     try {
       const result = await ingester.ingest(input);
+      if (result.created) {
+        try { schedulePrefill(result.candidateId); }
+        catch { console.error("[whatsapp-ingest] ai_prefill_schedule_failed"); }
+      }
       const claimed = await ingester.claimModerationDispatch(result.candidateId);
       if (claimed) {
         try {
@@ -110,3 +127,4 @@ export function createWhatsAppEventsHandler(
 function invalid() { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
 
 export const POST = createWhatsAppEventsHandler(new WhatsAppEventIngester(), sendCandidateForModeration);
+export const maxDuration = 90;

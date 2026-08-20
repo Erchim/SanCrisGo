@@ -26,7 +26,7 @@ describe("WhatsAppEventIngester", () => {
       from: vi.fn((table: string) => table === "event_candidates" ? candidateTable : messageTable),
     } as unknown as SupabaseClient;
 
-    await new WhatsAppEventIngester(client).ingest({
+    const result = await new WhatsAppEventIngester(client).ingest({
       images: [{
         image: new File(["image"], "event.jpg", { type: "image/jpeg" }),
         extension: "jpg",
@@ -42,6 +42,7 @@ describe("WhatsAppEventIngester", () => {
 
     expect(candidateInsert?.collection_started_at).toEqual(expect.any(String));
     expect(candidateInsert?.collection_closed_at).toBe(candidateInsert?.collection_started_at);
+    expect(result.created).toBe(true);
   });
 
   it("uploads and stores album images in source order", async () => {
@@ -71,7 +72,7 @@ describe("WhatsAppEventIngester", () => {
       from: vi.fn((table: string) => table === "event_candidates" ? candidateTable : messageTable),
     } as unknown as SupabaseClient;
 
-    await new WhatsAppEventIngester(client).ingest({
+    const result = await new WhatsAppEventIngester(client).ingest({
       images: [
         { image: new File(["one"], "one.jpg", { type: "image/jpeg" }), extension: "jpg", sourceMessageId: "message-1", receivedAt: "2026-08-19T12:00:00.000Z" },
         { image: new File(["two"], "two.png", { type: "image/png" }), extension: "png", sourceMessageId: "message-2", receivedAt: "2026-08-19T12:00:05.000Z" },
@@ -93,5 +94,39 @@ describe("WhatsAppEventIngester", () => {
       expect.objectContaining({ source_message_id: "message-2", text: "", sequence: 1 }),
     ]);
     expect(bucket.upload).toHaveBeenCalledTimes(2);
+    expect(result.created).toBe(true);
+  });
+
+  it("marks a duplicate candidate so downstream work is not scheduled twice", async () => {
+    const candidateTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: "existing-candidate" }, error: null }),
+    };
+    const bucket = {
+      upload: vi.fn(),
+      remove: vi.fn(),
+    };
+    const client = {
+      storage: { from: vi.fn().mockReturnValue(bucket) },
+      from: vi.fn().mockReturnValue(candidateTable),
+    } as unknown as SupabaseClient;
+
+    const result = await new WhatsAppEventIngester(client).ingest({
+      images: [{
+        image: new File(["image"], "event.jpg", { type: "image/jpeg" }),
+        extension: "jpg",
+        sourceMessageId: "message-1",
+        receivedAt: "2026-08-19T12:00:00.000Z",
+      }],
+      sourceGroupId: "group-1",
+      sourceGroupName: "Group",
+      sourceSenderId: "sender-1",
+      sourceSenderName: "Sender",
+      caption: "Caption",
+    });
+
+    expect(result).toEqual({ candidateId: "existing-candidate", created: false });
+    expect(bucket.upload).not.toHaveBeenCalled();
   });
 });

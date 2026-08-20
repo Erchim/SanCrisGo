@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
-import {
-  generateEventAiPrefill,
-  getEventAiModel,
-  safeAiErrorClass,
-} from "@/lib/events/event-ai-prefill";
+import { runEventAiPrefillWorkflow } from "@/lib/events/event-ai-prefill-workflow";
 import {
   EventWebsiteAdminError,
   EventWebsiteAdminService,
@@ -31,39 +27,16 @@ function errorMessage(error: unknown): string {
 
 export async function analyzeWebsiteCandidate(formData: FormData) {
   await requireAdmin();
-  const service = new EventWebsiteAdminService();
   let candidateId = "";
-  let model = "openai/gpt-5-nano";
-  let candidateExists = false;
-  let hadReadyPrefill = false;
   let failure = "";
 
   try {
     candidateId = candidateIdFrom(formData);
-    const detail = await service.getCandidateDetail(candidateId);
-    if (!detail) throw new EventWebsiteAdminError("Event candidate was not found.");
-    candidateExists = true;
-    hadReadyPrefill = detail.aiPrefill?.status === "ready";
-    model = getEventAiModel();
-
-    const generated = await generateEventAiPrefill({
-      caption: detail.candidate.original_text,
-      receivedAt: detail.candidate.created_at,
-      imageUrls: detail.media.slice(0, 2).map((media) => media.signedUrl),
-    });
-    await service.saveAiPrefill(candidateId, generated);
+    await runEventAiPrefillWorkflow(candidateId, { force: true });
   } catch (error) {
     failure = error instanceof EventWebsiteAdminError
       ? error.message
       : "AI analysis failed. Check AI Gateway configuration and retry.";
-
-    if (candidateExists && !hadReadyPrefill) {
-      try {
-        await service.saveAiPrefillFailure(candidateId, model, safeAiErrorClass(error));
-      } catch {
-        // Preserve the useful analysis error instead of replacing it with telemetry failure.
-      }
-    }
   }
 
   if (failure) {
