@@ -23,12 +23,17 @@ function formRequest(overrides: { image?: File | null; caption?: string; message
   });
 }
 
-function dependencies(result = { candidateId: "candidate-1" }) {
+function dependencies(result: { candidateId: string; created?: boolean } = { candidateId: "candidate-1" }) {
   let claimed = false;
   let sent = false;
+  let ingested = false;
   return {
     ingester: {
-      ingest: vi.fn().mockResolvedValue(result),
+      ingest: vi.fn(async () => {
+        const created = result.created ?? !ingested;
+        ingested = true;
+        return { candidateId: result.candidateId, created };
+      }),
       claimModerationDispatch: vi.fn(async () => {
         if (claimed || sent) return false;
         claimed = true;
@@ -38,7 +43,12 @@ function dependencies(result = { candidateId: "candidate-1" }) {
       releaseModerationDispatch: vi.fn(async () => { claimed = false; }),
     },
     dispatch: vi.fn().mockResolvedValue(undefined),
+    schedulePrefill: vi.fn(),
   };
+}
+
+function handlerFor(deps: ReturnType<typeof dependencies>) {
+  return createWhatsAppEventsHandler(deps.ingester, deps.dispatch, deps.schedulePrefill);
 }
 
 describe("WhatsApp event ingestion endpoint", () => {
@@ -46,14 +56,14 @@ describe("WhatsApp event ingestion endpoint", () => {
 
   it("rejects an unauthorized request", async () => {
     const deps = dependencies();
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(formRequest({}, false));
+    const response = await handlerFor(deps)(formRequest({}, false));
     expect(response.status).toBe(401);
     expect(deps.ingester.ingest).not.toHaveBeenCalled();
   });
 
   it("rejects invalid multipart data and a missing image", async () => {
     const deps = dependencies();
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     const malformed = await handler(new Request(endpoint, { method: "POST", headers: { authorization: "Bearer whatsapp-secret", "content-type": "application/json" }, body: "{}" }));
     const missing = await handler(formRequest({ image: null }));
     expect(malformed.status).toBe(400);
@@ -62,7 +72,7 @@ describe("WhatsApp event ingestion endpoint", () => {
 
   it("rejects unsupported image MIME types", async () => {
     const deps = dependencies();
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(
+    const response = await handlerFor(deps)(
       formRequest({ image: new File(["gif"], "event.gif", { type: "image/gif" }) }),
     );
     expect(response.status).toBe(400);
@@ -71,13 +81,13 @@ describe("WhatsApp event ingestion endpoint", () => {
   it("rejects image payloads larger than 4 MiB", async () => {
     const deps = dependencies();
     const image = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "large.jpg", { type: "image/jpeg" });
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(formRequest({ image }));
+    const response = await handlerFor(deps)(formRequest({ image }));
     expect(response.status).toBe(413);
   });
 
   it("persists and dispatches a valid image and caption", async () => {
     const deps = dependencies();
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(formRequest());
+    const response = await handlerFor(deps)(formRequest());
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true, candidateId: "candidate-1" });
     expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
@@ -86,11 +96,25 @@ describe("WhatsApp event ingestion endpoint", () => {
     }));
     expect(deps.dispatch).toHaveBeenCalledOnce();
     expect(deps.ingester.markModerationSent).toHaveBeenCalledWith("candidate-1");
+    expect(deps.schedulePrefill).toHaveBeenCalledWith("candidate-1");
+  });
+
+  it("keeps ingestion and Telegram independent when AI scheduling fails", async () => {
+    const deps = dependencies();
+    deps.schedulePrefill.mockImplementation(() => { throw new Error("scheduler unavailable"); });
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await handlerFor(deps)(formRequest());
+
+    expect(response.status).toBe(200);
+    expect(deps.dispatch).toHaveBeenCalledWith("candidate-1");
+    expect(log).toHaveBeenCalledWith("[whatsapp-ingest] ai_prefill_schedule_failed");
+    log.mockRestore();
   });
 
   it("persists and dispatches an image without a caption", async () => {
     const deps = dependencies();
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(
+    const response = await handlerFor(deps)(
       formRequest({ caption: "" }),
     );
 
@@ -119,7 +143,7 @@ describe("WhatsApp event ingestion endpoint", () => {
       body: form,
     });
 
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(request);
+    const response = await handlerFor(deps)(request);
 
     expect(response.status).toBe(200);
     expect(deps.ingester.ingest).toHaveBeenCalledWith(expect.objectContaining({
@@ -146,7 +170,7 @@ describe("WhatsApp event ingestion endpoint", () => {
       body: form,
     });
 
-    const response = await createWhatsAppEventsHandler(deps.ingester, deps.dispatch)(request);
+    const response = await handlerFor(deps)(request);
 
     expect(response.status).toBe(400);
     expect(deps.ingester.ingest).not.toHaveBeenCalled();
@@ -154,37 +178,40 @@ describe("WhatsApp event ingestion endpoint", () => {
 
   it("treats a previously moderated duplicate sourceMessageId as idempotent", async () => {
     const deps = dependencies({ candidateId: "existing-candidate" });
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     const first = await handler(formRequest({ messageId: "duplicate" }));
     const retry = await handler(formRequest({ messageId: "duplicate" }));
     expect(first.status).toBe(200);
     expect(retry.status).toBe(200);
     expect(deps.dispatch).toHaveBeenCalledOnce();
+    expect(deps.schedulePrefill).toHaveBeenCalledOnce();
   });
 
   it("dispatches Telegram only once across two concurrent requests", async () => {
     const deps = dependencies();
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     const [first, second] = await Promise.all([handler(formRequest()), handler(formRequest())]);
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     expect(deps.dispatch).toHaveBeenCalledOnce();
+    expect(deps.schedulePrefill).toHaveBeenCalledOnce();
   });
 
   it("does not dispatch again on a normal sequential retry after sent state", async () => {
     const deps = dependencies();
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     await handler(formRequest());
     await handler(formRequest());
     expect(deps.dispatch).toHaveBeenCalledOnce();
     expect(deps.ingester.claimModerationDispatch).toHaveBeenCalledTimes(2);
+    expect(deps.schedulePrefill).toHaveBeenCalledOnce();
   });
 
   it("keeps a persisted candidate retryable when Telegram fails", async () => {
     const deps = dependencies();
     deps.dispatch.mockRejectedValueOnce(new Error("Telegram details")).mockResolvedValueOnce(undefined);
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     const response = await handler(formRequest());
     const retry = await handler(formRequest());
     expect(response.status).toBe(502);
@@ -201,7 +228,7 @@ describe("WhatsApp event ingestion endpoint", () => {
     const deps = dependencies();
     deps.ingester.markModerationSent.mockRejectedValue(new Error("database unavailable"));
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const handler = createWhatsAppEventsHandler(deps.ingester, deps.dispatch);
+    const handler = handlerFor(deps);
     const first = await handler(formRequest());
     const retry = await handler(formRequest());
     expect(first.status).toBe(502);

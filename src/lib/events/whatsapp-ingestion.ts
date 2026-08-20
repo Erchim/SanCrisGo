@@ -23,6 +23,7 @@ export interface WhatsAppEventInput {
 
 export interface IngestionResult {
   candidateId: string;
+  created: boolean;
 }
 
 interface CandidateRow { id: string }
@@ -39,7 +40,7 @@ export class WhatsAppEventIngester {
     if (!anchorMessageId) throw new Error("image_missing");
 
     const existing = await this.findCandidate(anchorMessageId);
-    if (existing) return { candidateId: existing.id };
+    if (existing) return { candidateId: existing.id, created: false };
 
     const candidateId = randomUUID();
     const mediaPaths = input.images.map((image, sequence) =>
@@ -77,7 +78,7 @@ export class WhatsAppEventIngester {
     if (inserted.error) {
       await this.removeMedia(mediaPaths);
       const duplicate = await this.findCandidate(anchorMessageId);
-      if (duplicate) return { candidateId: duplicate.id };
+      if (duplicate) return { candidateId: duplicate.id, created: false };
       throw new Error("candidate_insert_failed");
     }
 
@@ -98,7 +99,7 @@ export class WhatsAppEventIngester {
       await this.removeMedia(mediaPaths);
       throw new Error("message_insert_failed");
     }
-    return { candidateId };
+    return { candidateId, created: true };
   }
 
   async claimModerationDispatch(candidateId: string): Promise<boolean> {
