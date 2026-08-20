@@ -30,6 +30,18 @@ const shortDateOnlyFormatter = new Intl.DateTimeFormat("en", {
   day: "numeric",
 });
 
+const cardDateFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: EVENT_TIME_ZONE,
+  month: "short",
+  day: "numeric",
+});
+
+const cardDateOnlyFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+});
+
 const timeFormatter = new Intl.DateTimeFormat("en", {
   timeZone: EVENT_TIME_ZONE,
   hour: "numeric",
@@ -56,6 +68,13 @@ export function formatEventDate(startsOn: string, short = false): string {
     : (short ? shortDateFormatter : dateFormatter);
   const value = isDateOnly ? `${startsOn}T12:00:00.000Z` : startsOn;
   return formatter.format(new Date(value));
+}
+
+export function formatEventCardDate(startsOn: string): string {
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(startsOn);
+  const formatter = isDateOnly ? cardDateOnlyFormatter : cardDateFormatter;
+  const value = isDateOnly ? `${startsOn}T12:00:00.000Z` : startsOn;
+  return formatter.format(new Date(value)).toUpperCase();
 }
 
 export function formatEventTimeRange(startsAt: string | null, endsAt: string | null): string {

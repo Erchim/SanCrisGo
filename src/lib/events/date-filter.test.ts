@@ -4,8 +4,16 @@ import { localEventDateTimeToISOString, resolveEventDateSelection } from "./date
 describe("resolveEventDateSelection", () => {
   const tuesdayEveningInChiapas = new Date("2026-08-19T00:30:00.000Z");
 
-  it("uses the San Cristobal calendar day for today", () => {
+  it("uses all upcoming events as the default selection", () => {
     expect(resolveEventDateSelection(undefined, undefined, tuesdayEveningInChiapas)).toEqual({
+      filter: "upcoming",
+      label: "All upcoming events",
+      start: "2026-08-19T00:30:00.000Z",
+    });
+  });
+
+  it("uses the San Cristobal calendar day when today is selected", () => {
+    expect(resolveEventDateSelection("today", undefined, tuesdayEveningInChiapas)).toEqual({
       filter: "today",
       label: "Today",
       start: "2026-08-18T06:00:00.000Z",
@@ -53,7 +61,7 @@ describe("resolveEventDateSelection", () => {
       end: "2026-09-01T06:00:00.000Z",
       dateInput: "2026-08-31",
     });
-    expect(resolveEventDateSelection(undefined, "2026-02-30", tuesdayEveningInChiapas).filter).toBe("today");
+    expect(resolveEventDateSelection(undefined, "2026-02-30", tuesdayEveningInChiapas).filter).toBe("upcoming");
   });
 
   it("converts optional event form time in the San Cristobal time zone", () => {

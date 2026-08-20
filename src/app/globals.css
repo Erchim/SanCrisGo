@@ -100,21 +100,23 @@ p, li { line-height: 1.65; }
 .event-results { margin-top: clamp(2.5rem, 7vw, 4.5rem); }
 .event-results .section-heading { padding-bottom: 1rem; border-bottom: 1px solid #dedbd1; }
 .event-count { margin: 0; color: #65716c; white-space: nowrap; }
-.event-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin: 0; padding: 0; list-style: none; }
+.event-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; margin: 0; padding: 0; list-style: none; }
 .event-card { overflow: hidden; border: 1px solid #dedbd1; border-radius: 0.85rem; background: #fff; box-shadow: 0 0.25rem 1.25rem rgba(23, 37, 31, 0.045); }
+.event-card:target { border-color: #32765a; box-shadow: 0 0 0 0.18rem rgba(50, 118, 90, 0.16); }
 .event-card article { display: flex; height: 100%; flex-direction: column; }
 .event-card-media { display: block; overflow: hidden; background: #e9e7df; }
-.event-card-media img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 220ms ease; }
+.event-card-media img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; transition: transform 220ms ease; }
 .event-card-media:hover img { transform: scale(1.025); }
-.event-card-date { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.35rem 0.75rem; padding: 0.9rem 1.1rem; border-bottom: 1px solid #eeece5; background: #f5f3ed; color: #35443d; font-weight: 700; }
+.event-card-date { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.15rem 0.45rem; padding: 0.55rem 0.65rem; border-bottom: 1px solid #eeece5; background: #f5f3ed; color: #35443d; font-weight: 700; }
 .event-card-date time { color: #176545; }
-.event-card-date span { color: #65716c; font-size: 0.9rem; font-weight: 600; }
-.event-card-content { display: flex; flex: 1; flex-direction: column; padding: 1.1rem; }
-.event-card h2 { margin: 0; font-size: clamp(1.25rem, 3vw, 1.55rem); }
+.event-card-date span { color: #65716c; font-size: 0.78rem; font-weight: 600; }
+.event-card-content { display: flex; flex: 1; flex-direction: column; padding: 0.7rem; }
+.event-card .event-type { margin-bottom: 0.4rem; font-size: 0.66rem; }
+.event-card h2 { display: -webkit-box; overflow: hidden; margin: 0; font-size: 1.05rem; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .event-card h2 a { color: #17251f; text-decoration-color: #91b4a5; text-decoration-thickness: 0.08em; }
 .event-card h2 a:hover { color: #176545; text-decoration-color: currentColor; }
-.event-summary { display: -webkit-box; overflow: hidden; margin-block: 0.75rem; color: #43534c; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-.event-venue, .event-price { margin: 0.65rem 0 0; color: #65716c; font-size: 0.9rem; }
+.event-summary { display: none; overflow: hidden; margin-block: 0.75rem; color: #43534c; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.event-venue, .event-price { display: -webkit-box; overflow: hidden; margin: 0.5rem 0 0; color: #65716c; font-size: 0.78rem; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .event-price { color: #35443d; font-weight: 700; }
 .events-empty { padding: clamp(1.5rem, 5vw, 2.5rem); border: 1px dashed #bfc7c2; border-radius: 0.75rem; background: #f5f3ed; text-align: center; }
 .events-empty h3 { margin: 0; font-size: 1.35rem; }
@@ -223,7 +225,7 @@ p, li { line-height: 1.65; }
   .markdown { font-size: 1rem; }
   .event-date-form { align-items: stretch; flex-direction: column; }
   .event-date-form div { display: grid; grid-template-columns: 1fr; }
-  .event-card-content { padding: 1.05rem; }
+  .event-card-date { align-content: start; flex-direction: column; }
   .event-gallery { grid-template-columns: 1fr; }
   .event-gallery figure:first-child:nth-last-child(odd) { grid-column: auto; }
   .admin-heading, .admin-editor-heading { flex-direction: column; }
@@ -235,6 +237,20 @@ p, li { line-height: 1.65; }
   .admin-media-grid, .admin-form fieldset { grid-template-columns: 1fr; }
   .admin-field-wide { grid-column: auto; }
   .site-footer > div { width: min(100% - 1.25rem, 72rem); align-items: start; flex-direction: column; justify-content: center; padding-block: 1.5rem; }
+}
+
+@media (min-width: 48rem) {
+  .event-list { gap: 1.1rem; }
+  .event-card-date { padding: 0.75rem 0.9rem; }
+  .event-card-content { padding: 0.95rem; }
+  .event-card .event-type { font-size: 0.72rem; }
+  .event-card h2 { font-size: 1.3rem; }
+  .event-summary { display: -webkit-box; }
+  .event-venue, .event-price { font-size: 0.86rem; }
+}
+
+@media (min-width: 64rem) {
+  .event-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
 }
 
 @media (max-width: 48rem) {
