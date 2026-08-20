@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
 import { EventWebsiteAdminService } from "@/lib/events/website-admin";
-import { publishWebsiteEvent, saveEventDraft } from "../actions";
+import { analyzeWebsiteCandidate, publishWebsiteEvent, saveEventDraft } from "../actions";
 
 export const metadata: Metadata = {
   title: "Edit website event",
@@ -40,7 +40,34 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
   if (!detail) notFound();
 
   const event = detail.event;
-  const description = event?.description ?? detail.candidate.original_text;
+  const prefill = detail.aiPrefill?.status === "ready" ? detail.aiPrefill.result : null;
+  const title = event ? event.title : prefill?.title ?? "";
+  const titleEs = (event ? event.title_es : prefill?.title_es) ?? "";
+  const startsOn = event ? event.starts_on : prefill?.starts_on ?? "";
+  const startsTime = event ? timeInput(event.starts_at) : prefill?.starts_time ?? "";
+  const endsOn = event ? event.ends_on ?? "" : prefill?.ends_on ?? "";
+  const endsTime = event ? timeInput(event.ends_at) : prefill?.ends_time ?? "";
+  const eventType = event ? event.event_type : prefill?.event_type ?? "other";
+  const sourceLanguage = event
+    ? event.source_language
+    : prefill?.source_language === "en" ? "en" : "es";
+  const venueName = event ? event.venue_name ?? "" : prefill?.venue_name ?? "";
+  const address = event ? event.address ?? "" : prefill?.address ?? "";
+  const priceText = event ? event.price_text ?? "" : prefill?.price_text ?? "";
+  const priceTextEs = event ? event.price_text_es ?? "" : prefill?.price_text_es ?? "";
+  const contactPhone = event ? event.contact_phone ?? "" : prefill?.contact_phone ?? "";
+  const summary = event ? event.summary ?? "" : prefill?.summary ?? "";
+  const summaryEs = event ? event.summary_es ?? "" : prefill?.summary_es ?? "";
+  const description = event
+    ? event.description ?? ""
+    : prefill?.description ?? detail.candidate.original_text;
+  const descriptionEs = event
+    ? event.description_es ?? ""
+    : prefill?.description_es ?? detail.candidate.original_text;
+  const sourceUrl = event ? event.source_url ?? "" : prefill?.source_url ?? "";
+  const ticketUrl = event ? event.ticket_url ?? "" : prefill?.ticket_url ?? "";
+  const organizerName = event ? event.organizer_name ?? "" : prefill?.organizer_name ?? "";
+  const organizerUrl = event ? event.organizer_url ?? "" : prefill?.organizer_url ?? "";
   const status = single(query.status);
   const error = single(query.error);
 
@@ -50,7 +77,7 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
       <header className="admin-editor-heading">
         <div>
           <p className="eyebrow">Website event · {detail.state}</p>
-          <h1>{event?.title || "Review candidate"}</h1>
+          <h1>{event?.title || prefill?.title || "Review candidate"}</h1>
         </div>
         {event?.publication_status === "published" && (
           <Link href={`/events/${event.slug}`} target="_blank">View public page ↗</Link>
@@ -58,6 +85,7 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
       </header>
 
       {status === "saved" && <p className="admin-success">Draft saved.</p>}
+      {status === "ai-ready" && <p className="admin-success">AI suggestions are ready in the form below.</p>}
       {error && <p className="admin-alert" role="alert">{error}</p>}
 
       <section aria-labelledby="candidate-source-heading" className="admin-source-panel">
@@ -68,6 +96,38 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
           <span>{detail.candidate.source_sender_name || "Unknown sender"}</span>
           <span>Instagram status: {detail.candidate.status}</span>
         </p>
+      </section>
+
+      <section aria-labelledby="ai-prefill-heading" className="admin-ai-panel">
+        <div>
+          <h2 id="ai-prefill-heading">AI prefill</h2>
+          <p>
+            Extract event facts from the caption and flyer, then review every field before saving or publishing.
+          </p>
+          {event && <small>Re-analysis will not overwrite this saved draft.</small>}
+          {detail.aiPrefill?.status === "ready" && (
+            <p className="admin-ai-meta">
+              {detail.aiPrefill.model} · {detail.aiPrefill.inputTokens + detail.aiPrefill.outputTokens} tokens
+              {detail.aiPrefill.estimatedCostUsd !== null
+                ? ` · about $${detail.aiPrefill.estimatedCostUsd.toFixed(6)}`
+                : ""}
+            </p>
+          )}
+          {detail.aiPrefill?.status === "failed" && (
+            <p className="admin-ai-error">Last attempt failed ({detail.aiPrefill.errorClass || "unknown error"}).</p>
+          )}
+          {prefill && prefill.warnings.length > 0 && (
+            <ul className="admin-ai-warnings">
+              {prefill.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          )}
+        </div>
+        <form action={analyzeWebsiteCandidate}>
+          <input name="candidate_id" type="hidden" value={candidateId} />
+          <button type="submit">
+            {detail.aiPrefill ? "Analyze again" : "Analyze flyer"}
+          </button>
+        </form>
       </section>
 
       <section aria-labelledby="candidate-images-heading">
@@ -97,25 +157,29 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
         <fieldset>
           <legend>Required information</legend>
           <label className="admin-field-wide">
-            Event title
-            <input name="title" defaultValue={event?.title ?? ""} required />
+            Event title (English)
+            <input name="title" defaultValue={title} required />
+          </label>
+          <label className="admin-field-wide">
+            Event title (Spanish)
+            <input name="title_es" defaultValue={titleEs} />
           </label>
           <label>
             Date
-            <input name="starts_on" type="date" defaultValue={event?.starts_on ?? ""} required />
+            <input name="starts_on" type="date" defaultValue={startsOn} required />
           </label>
           <label>
             Time (optional)
-            <input name="starts_time" type="time" defaultValue={timeInput(event?.starts_at)} />
+            <input name="starts_time" type="time" defaultValue={startsTime} />
             <small>Leave empty to show “Time to be confirmed”.</small>
           </label>
           <label>
             Category
-            <input name="event_type" defaultValue={event?.event_type ?? "other"} required />
+            <input name="event_type" defaultValue={eventType} required />
           </label>
           <label>
             Source language
-            <select name="source_language" defaultValue={event?.source_language ?? "es"}>
+            <select name="source_language" defaultValue={sourceLanguage}>
               <option value="es">Spanish</option>
               <option value="en">English</option>
             </select>
@@ -126,35 +190,51 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
           <legend>Time and place</legend>
           <label>
             End date (optional)
-            <input name="ends_on" type="date" defaultValue={event?.ends_on ?? ""} />
+            <input name="ends_on" type="date" defaultValue={endsOn} />
           </label>
           <label>
             End time (optional)
-            <input name="ends_time" type="time" defaultValue={timeInput(event?.ends_at)} />
+            <input name="ends_time" type="time" defaultValue={endsTime} />
           </label>
           <label>
             Venue
-            <input name="venue_name" defaultValue={event?.venue_name ?? ""} />
+            <input name="venue_name" defaultValue={venueName} />
           </label>
           <label>
             Address
-            <input name="address" defaultValue={event?.address ?? ""} />
+            <input name="address" defaultValue={address} />
           </label>
           <label>
-            Price
-            <input name="price_text" defaultValue={event?.price_text ?? ""} placeholder="Free or MXN 150" />
+            Price (English)
+            <input name="price_text" defaultValue={priceText} placeholder="Free or MXN 150" />
+          </label>
+          <label>
+            Price (Spanish)
+            <input name="price_text_es" defaultValue={priceTextEs} placeholder="Gratis o MXN 150" />
+          </label>
+          <label className="admin-field-wide">
+            Contact phone
+            <input name="contact_phone" defaultValue={contactPhone} inputMode="tel" />
           </label>
         </fieldset>
 
         <fieldset>
           <legend>Public description</legend>
           <label className="admin-field-wide">
-            Short summary
-            <textarea name="summary" rows={3} defaultValue={event?.summary ?? ""} />
+            Short summary (English)
+            <textarea name="summary" rows={3} defaultValue={summary} />
           </label>
           <label className="admin-field-wide">
-            Description
+            Description (English)
             <textarea name="description" rows={10} defaultValue={description} />
+          </label>
+          <label className="admin-field-wide">
+            Short summary (Spanish)
+            <textarea name="summary_es" rows={3} defaultValue={summaryEs} />
+          </label>
+          <label className="admin-field-wide">
+            Description (Spanish)
+            <textarea name="description_es" rows={10} defaultValue={descriptionEs} />
           </label>
         </fieldset>
 
@@ -162,19 +242,19 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
           <legend>Links and organizer</legend>
           <label>
             Source URL
-            <input name="source_url" type="url" defaultValue={event?.source_url ?? ""} />
+            <input name="source_url" type="url" defaultValue={sourceUrl} />
           </label>
           <label>
             Ticket URL
-            <input name="ticket_url" type="url" defaultValue={event?.ticket_url ?? ""} />
+            <input name="ticket_url" type="url" defaultValue={ticketUrl} />
           </label>
           <label>
             Organizer name
-            <input name="organizer_name" defaultValue={event?.organizer_name ?? ""} />
+            <input name="organizer_name" defaultValue={organizerName} />
           </label>
           <label>
             Organizer URL
-            <input name="organizer_url" type="url" defaultValue={event?.organizer_url ?? ""} />
+            <input name="organizer_url" type="url" defaultValue={organizerUrl} />
           </label>
           <label className="admin-field-wide">
             URL slug

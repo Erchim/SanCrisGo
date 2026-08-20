@@ -32,6 +32,17 @@ WhatsApp candidates, saving event drafts, skipping candidates for the website,
 and publishing independently from Instagram. A known date is required; time is
 optional.
 
+The candidate editor has an explicit **Analyze flyer** action. It sends the
+caption and first flyer image to the Vercel AI Gateway, stores structured
+suggestions, and prefills English and Spanish event fields for staff review. A
+second image is analyzed only when the first result is missing the event title
+or date. AI suggestions never save or publish an event by themselves.
+
+The default model is `openai/gpt-5-nano`. Override it with `AI_EVENT_MODEL`
+using another OpenAI model ID supported by AI Gateway. Vercel deployments can
+authenticate through Vercel OIDC after AI Gateway is enabled for the project;
+for local development, set `AI_GATEWAY_API_KEY`.
+
 In the configured Telegram moderation chat, `/site` returns current queue totals
 and one button linking to `/admin/events`. Existing Instagram moderation buttons
 and callbacks remain separate.

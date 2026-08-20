@@ -8,6 +8,7 @@ import {
   formatEventTimeRange,
   formatEventType,
   safeExternalUrl,
+  safePhoneHref,
 } from "@/lib/events/presentation";
 import { getAbsoluteUrl } from "@/lib/site-url";
 
@@ -90,6 +91,7 @@ export default async function EventPage({ params }: Props) {
   const ticketUrl = safeExternalUrl(event.ticket_url);
   const sourceUrl = safeExternalUrl(event.source_url);
   const organizerUrl = safeExternalUrl(event.organizer_url);
+  const phoneHref = safePhoneHref(event.contact_phone);
 
   return (
     <article className="event-article">
@@ -140,6 +142,13 @@ export default async function EventPage({ params }: Props) {
           <section aria-labelledby="event-price-heading">
             <h2 id="event-price-heading">Price</h2>
             <p>{event.price_text}</p>
+          </section>
+        )}
+
+        {event.contact_phone && (
+          <section aria-labelledby="event-contact-heading">
+            <h2 id="event-contact-heading">Contact</h2>
+            <p>{phoneHref ? <a href={phoneHref}>{event.contact_phone}</a> : event.contact_phone}</p>
           </section>
         )}
       </div>

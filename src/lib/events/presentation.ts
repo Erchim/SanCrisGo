@@ -82,3 +82,9 @@ export function safeExternalUrl(value: string | null): string | null {
     return null;
   }
 }
+
+export function safePhoneHref(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
+  return normalized.replace(/\D/g, "").length >= 7 ? `tel:${normalized}` : null;
+}

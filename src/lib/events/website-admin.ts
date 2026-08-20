@@ -1,6 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { localEventDateTimeToISOString } from "@/lib/events/date-filter";
+import type { GeneratedEventAiPrefill } from "@/lib/events/event-ai-prefill";
+import {
+  eventAiPrefillSchema,
+  normalizeEventAiPrefill,
+  type EventAiPrefill,
+} from "@/lib/events/event-ai-schema";
 import {
   createEventMediaSignedUrls,
   EVENT_MEDIA_BUCKET,
@@ -64,10 +70,13 @@ export type WebsiteQueueItem = {
 export type EventDraftRow = {
   id: string;
   title: string;
+  title_es: string | null;
   slug: string;
   event_type: string;
   summary: string | null;
+  summary_es: string | null;
   description: string | null;
+  description_es: string | null;
   venue_name: string | null;
   address: string | null;
   starts_on: string;
@@ -75,6 +84,8 @@ export type EventDraftRow = {
   ends_on: string | null;
   ends_at: string | null;
   price_text: string | null;
+  price_text_es: string | null;
+  contact_phone: string | null;
   ticket_url: string | null;
   organizer_name: string | null;
   organizer_url: string | null;
@@ -83,20 +94,35 @@ export type EventDraftRow = {
   publication_status: string;
 };
 
+export type EventAiPrefillRow = {
+  status: "ready" | "failed";
+  model: string;
+  result: EventAiPrefill | null;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number | null;
+  errorClass: string | null;
+  analyzedAt: string;
+};
+
 export type WebsiteCandidateDetail = {
   candidate: CandidateRow;
   media: Array<{ path: string; sequence: number; signedUrl: string }>;
   publication: PublicationRow | null;
   event: EventDraftRow | null;
+  aiPrefill: EventAiPrefillRow | null;
   state: WebsiteQueueState;
 };
 
 export type EventDraftInput = {
   title: string;
+  titleEs: string | null;
   slug: string;
   eventType: string;
   summary: string | null;
+  summaryEs: string | null;
   description: string | null;
+  descriptionEs: string | null;
   venueName: string | null;
   address: string | null;
   startsOn: string;
@@ -104,6 +130,8 @@ export type EventDraftInput = {
   endsOn: string | null;
   endsAt: string | null;
   priceText: string | null;
+  priceTextEs: string | null;
+  contactPhone: string | null;
   ticketUrl: string | null;
   organizerName: string | null;
   organizerUrl: string | null;
@@ -216,10 +244,13 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
 
   return {
     title,
+    titleEs: optionalText(formData.get("title_es")),
     slug,
     eventType: optionalText(formData.get("event_type")) ?? "other",
     summary: optionalText(formData.get("summary")),
+    summaryEs: optionalText(formData.get("summary_es")),
     description: optionalText(formData.get("description")),
+    descriptionEs: optionalText(formData.get("description_es")),
     venueName: optionalText(formData.get("venue_name")),
     address: optionalText(formData.get("address")),
     startsOn,
@@ -227,6 +258,8 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
     endsOn,
     endsAt,
     priceText: optionalText(formData.get("price_text")),
+    priceTextEs: optionalText(formData.get("price_text_es")),
+    contactPhone: optionalText(formData.get("contact_phone")),
     ticketUrl: optionalHttpUrl(formData, "ticket_url", "Ticket URL"),
     organizerName: optionalText(formData.get("organizer_name")),
     organizerUrl: optionalHttpUrl(formData, "organizer_url", "Organizer URL"),
@@ -342,7 +375,7 @@ export class EventWebsiteAdminService {
     if (!data) return null;
 
     const candidate = data as CandidateRow;
-    const [publicationResult, skipResult] = await Promise.all([
+    const [publicationResult, skipResult, aiPrefillResult] = await Promise.all([
       this.client
         .from("event_publications")
         .select("candidate_id,event_id,status,error,published_at")
@@ -354,8 +387,13 @@ export class EventWebsiteAdminService {
         .select("candidate_id")
         .eq("candidate_id", candidateId)
         .maybeSingle(),
+      this.client
+        .from("event_candidate_ai_prefills")
+        .select("status,model,result,input_tokens,output_tokens,estimated_cost_usd,error_class,analyzed_at")
+        .eq("candidate_id", candidateId)
+        .maybeSingle(),
     ]);
-    if (publicationResult.error || skipResult.error) {
+    if (publicationResult.error || skipResult.error || aiPrefillResult.error) {
       throw new EventWebsiteAdminError("Could not load the website review state.");
     }
 
@@ -364,7 +402,7 @@ export class EventWebsiteAdminService {
     if (publication?.event_id) {
       const { data: eventData, error: eventError } = await this.client
         .from("events")
-        .select("id,title,slug,event_type,summary,description,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
+        .select("id,title,title_es,slug,event_type,summary,summary_es,description,description_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,price_text_es,contact_phone,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
         .eq("id", publication.event_id)
         .maybeSingle();
       if (eventError) throw new EventWebsiteAdminError("Could not load the website event draft.");
@@ -377,6 +415,33 @@ export class EventWebsiteAdminService {
       3600,
       this.client,
     );
+    const storedPrefill = aiPrefillResult.data as {
+      status: "ready" | "failed";
+      model: string;
+      result: unknown;
+      input_tokens: number;
+      output_tokens: number;
+      estimated_cost_usd: number | string | null;
+      error_class: string | null;
+      analyzed_at: string;
+    } | null;
+    const parsedPrefill = storedPrefill?.status === "ready"
+      ? eventAiPrefillSchema.safeParse(storedPrefill.result)
+      : null;
+    const aiPrefill: EventAiPrefillRow | null = storedPrefill ? {
+      status: parsedPrefill?.success === false ? "failed" : storedPrefill.status,
+      model: storedPrefill.model,
+      result: parsedPrefill?.success ? normalizeEventAiPrefill(parsedPrefill.data) : null,
+      inputTokens: storedPrefill.input_tokens,
+      outputTokens: storedPrefill.output_tokens,
+      estimatedCostUsd: storedPrefill.estimated_cost_usd === null
+        ? null
+        : Number(storedPrefill.estimated_cost_usd),
+      errorClass: parsedPrefill?.success === false
+        ? "InvalidStoredResult"
+        : storedPrefill.error_class,
+      analyzedAt: storedPrefill.analyzed_at,
+    } : null;
 
     return {
       candidate,
@@ -386,8 +451,39 @@ export class EventWebsiteAdminService {
       })).filter((item) => item.signedUrl),
       publication,
       event,
+      aiPrefill,
       state: websiteQueueState(publication, skipResult.data !== null),
     };
+  }
+
+  async saveAiPrefill(candidateId: string, generated: GeneratedEventAiPrefill): Promise<void> {
+    const { error } = await this.client.from("event_candidate_ai_prefills").upsert({
+      candidate_id: candidateId,
+      status: "ready",
+      model: generated.model,
+      result: generated.result,
+      input_tokens: generated.inputTokens,
+      output_tokens: generated.outputTokens,
+      estimated_cost_usd: generated.estimatedCostUsd,
+      error_class: null,
+      analyzed_at: new Date().toISOString(),
+    });
+    if (error) throw new EventWebsiteAdminError("Could not save the AI suggestions.");
+  }
+
+  async saveAiPrefillFailure(candidateId: string, model: string, errorClass: string): Promise<void> {
+    const { error } = await this.client.from("event_candidate_ai_prefills").upsert({
+      candidate_id: candidateId,
+      status: "failed",
+      model,
+      result: null,
+      input_tokens: 0,
+      output_tokens: 0,
+      estimated_cost_usd: null,
+      error_class: errorClass,
+      analyzed_at: new Date().toISOString(),
+    });
+    if (error) throw new EventWebsiteAdminError("Could not save the AI analysis status.");
   }
 
   async saveDraft(candidateId: string, actorId: string, input: EventDraftInput) {
@@ -409,10 +505,13 @@ export class EventWebsiteAdminService {
 
     const eventValues = {
       title: input.title,
+      title_es: input.titleEs,
       slug: input.slug,
       event_type: input.eventType,
       summary: input.summary,
+      summary_es: input.summaryEs,
       description: input.description,
+      description_es: input.descriptionEs,
       venue_name: input.venueName,
       address: input.address,
       starts_on: input.startsOn,
@@ -420,6 +519,8 @@ export class EventWebsiteAdminService {
       ends_on: input.endsOn,
       ends_at: input.endsAt,
       price_text: input.priceText,
+      price_text_es: input.priceTextEs,
+      contact_phone: input.contactPhone,
       ticket_url: input.ticketUrl,
       organizer_name: input.organizerName,
       organizer_url: input.organizerUrl,
