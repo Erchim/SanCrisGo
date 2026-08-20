@@ -24,11 +24,30 @@ export const metadata: Metadata = {
   },
 };
 
+function websiteJsonLd() {
+  if (!canonical) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "SanCrisGo",
+    alternateName: "San Cris Go",
+    url: canonical,
+  };
+}
+
 export default async function Home() {
   const guides = await getLatestPublishedGuides();
+  const website = websiteJsonLd();
+  const websiteJson = website
+    ? JSON.stringify(website).replace(/</g, "\\u003c")
+    : null;
 
   return (
     <div className="home">
+      {websiteJson && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: websiteJson }} />
+      )}
       <section className="home-hero">
         <div className="home-hero-copy">
           <p className="eyebrow">San Cristóbal, made easier</p>

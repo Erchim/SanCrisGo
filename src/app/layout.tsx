@@ -36,7 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <main>{children}</main>
         <footer className="site-footer">
           <div>
-            <p><strong>SanCrisGo</strong> · Practical local information for San Cristóbal de las Casas.</p>
+            <p><strong className="footer-name">SanCrisGo</strong><span>Practical local information for San Cristóbal de las Casas.</span></p>
             <nav aria-label="Footer navigation">
               <Link href="/events">Events</Link>
               <Link href="/guides">Guides</Link>
