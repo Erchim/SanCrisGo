@@ -84,12 +84,33 @@ function eventJsonLd(event: PublicEvent) {
   };
 }
 
+function eventBreadcrumbJsonLd(event: PublicEvent) {
+  const homeUrl = getAbsoluteUrl("/");
+  const eventsUrl = getAbsoluteUrl("/events");
+  const eventUrl = getAbsoluteUrl(`/events/${event.slug}`);
+  if (!homeUrl || !eventsUrl || !eventUrl) return null;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: homeUrl },
+      { "@type": "ListItem", position: 2, name: "Events", item: eventsUrl },
+      { "@type": "ListItem", position: 3, name: event.title, item: eventUrl },
+    ],
+  };
+}
+
 export default async function EventPage({ params, searchParams }: Props) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const event = await getPublishedEvent(slug);
   if (!event) notFound();
 
   const jsonLd = JSON.stringify(eventJsonLd(event)).replace(/</g, "\\u003c");
+  const breadcrumb = eventBreadcrumbJsonLd(event);
+  const breadcrumbJsonLd = breadcrumb
+    ? JSON.stringify(breadcrumb).replace(/</g, "\\u003c")
+    : null;
   const ticketUrl = safeExternalUrl(event.ticket_url);
   const sourceUrl = safeExternalUrl(event.source_url);
   const organizerUrl = safeExternalUrl(event.organizer_url);
@@ -99,7 +120,17 @@ export default async function EventPage({ params, searchParams }: Props) {
   return (
     <article className="event-article">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      {breadcrumbJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      )}
 
+      <nav className="event-breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><Link href="/">Home</Link></li>
+          <li><Link href="/events">Events</Link></li>
+          <li aria-current="page">{event.title}</li>
+        </ol>
+      </nav>
       <Link className="back-link" href={backHref}>← Back to events</Link>
       <header className="event-article-header">
         <p className="event-type">{formatEventType(event.event_type)}</p>

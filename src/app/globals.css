@@ -124,6 +124,11 @@ p, li { line-height: 1.65; }
 .events-empty a { font-weight: 700; }
 
 .event-article { max-width: 48rem; margin-inline: auto; }
+.event-breadcrumbs { margin-bottom: 0.8rem; color: #65716c; font-size: 0.82rem; }
+.event-breadcrumbs ol { display: flex; overflow: hidden; flex-wrap: wrap; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.event-breadcrumbs li { display: flex; min-width: 0; align-items: center; gap: 0.3rem; line-height: 1.4; }
+.event-breadcrumbs li:not(:last-child)::after { color: #9aa39e; content: "/"; }
+.event-breadcrumbs li:last-child { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
 .back-link { display: inline-block; margin-bottom: 2rem; font-weight: 700; }
 .event-article-header { padding-bottom: clamp(2rem, 6vw, 3rem); border-bottom: 1px solid #dedbd1; }
 .event-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin-top: 1.5rem; }

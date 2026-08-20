@@ -38,7 +38,7 @@ export default async function Home() {
             the day, and seeing what is happening around the city.
           </p>
           <div className="home-hero-actions">
-            <Link className="primary-link" href="/events">See today&apos;s events</Link>
+            <Link className="primary-link" href="/events">See upcoming events</Link>
             <Link className="secondary-link" href="/guides">Explore the guides</Link>
           </div>
         </div>
