@@ -30,6 +30,7 @@ export type PublicEvent = PublicEventListItem & {
   seo_title: string | null;
   seo_description: string | null;
   source_url: string | null;
+  contact_phone: string | null;
   media: Array<{
     url: string;
     altText: string | null;
@@ -49,6 +50,7 @@ type EventDetailRow = EventListRow & {
   seo_title: string | null;
   seo_description: string | null;
   source_url: string | null;
+  contact_phone: string | null;
   event_media: Array<{
     storage_path: string;
     alt_text: string | null;
@@ -105,7 +107,7 @@ export async function getPublishedEvents(
 export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent | null> => {
   const { data, error } = await createPublicSupabaseClient()
     .from("events")
-    .select(`${listFields},description,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,event_media(storage_path,alt_text,sort_order)`)
+    .select(`${listFields},description,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,contact_phone,event_media(storage_path,alt_text,sort_order)`)
     .eq("slug", slug)
     .eq("publication_status", "published")
     .order("sort_order", { referencedTable: "event_media", ascending: true })
@@ -115,7 +117,7 @@ export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent
   if (!data) return null;
 
   const row = data as EventDetailRow;
-  const { event_media: mediaRows, description, ticket_url, organizer_name, organizer_url, seo_title, seo_description, source_url, ...listRow } = row;
+  const { event_media: mediaRows, description, ticket_url, organizer_name, organizer_url, seo_title, seo_description, source_url, contact_phone, ...listRow } = row;
   return {
     ...mapListRow(listRow),
     description,
@@ -125,6 +127,7 @@ export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent
     seo_title,
     seo_description,
     source_url,
+    contact_phone,
     media: mediaRows.map((media) => ({
       url: getPublicEventMediaUrl(media.storage_path) ?? "",
       altText: media.alt_text,

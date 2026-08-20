@@ -42,6 +42,25 @@ describe("website event admin", () => {
     expect(draft.endsAt).toBe("2026-08-19T02:00:00.000Z");
   });
 
+  it("keeps bilingual copy and a contact phone in the draft", () => {
+    const draft = parseEventDraftForm(form({
+      title: "Live music",
+      title_es: "Música en vivo",
+      starts_on: "2026-08-20",
+      summary: "An evening concert.",
+      summary_es: "Un concierto por la noche.",
+      description_es: "Descripción completa.",
+      price_text_es: "Entrada libre",
+      contact_phone: "+52 967 123 4567",
+    }), candidateId);
+
+    expect(draft.titleEs).toBe("Música en vivo");
+    expect(draft.summaryEs).toBe("Un concierto por la noche.");
+    expect(draft.descriptionEs).toBe("Descripción completa.");
+    expect(draft.priceTextEs).toBe("Entrada libre");
+    expect(draft.contactPhone).toBe("+52 967 123 4567");
+  });
+
   it("rejects an end time when the start time is unknown", () => {
     expect(() => parseEventDraftForm(form({
       title: "Incomplete event",

@@ -4,6 +4,7 @@ import {
   formatEventTimeRange,
   formatEventType,
   safeExternalUrl,
+  safePhoneHref,
 } from "./presentation";
 
 describe("event presentation", () => {
@@ -23,5 +24,10 @@ describe("event presentation", () => {
     expect(safeExternalUrl("https://example.com/tickets")).toBe("https://example.com/tickets");
     expect(safeExternalUrl("javascript:alert(1)")).toBeNull();
     expect(safeExternalUrl("not a URL")).toBeNull();
+  });
+
+  it("creates safe telephone links without changing the displayed value", () => {
+    expect(safePhoneHref("+52 (967) 123-4567")).toBe("tel:+529671234567");
+    expect(safePhoneHref("call us")).toBeNull();
   });
 });
