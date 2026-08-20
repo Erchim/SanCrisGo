@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
 import { EventWebsiteAdminService } from "@/lib/events/website-admin";
 import { analyzeWebsiteCandidate, publishWebsiteEvent, saveEventDraft } from "../actions";
+import { AiAnalyzeForm } from "./ai-analyze-form";
 
 export const metadata: Metadata = {
   title: "Edit website event",
@@ -102,7 +103,7 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
         <div>
           <h2 id="ai-prefill-heading">AI prefill</h2>
           <p>
-            Extract event facts from the caption and flyer, then review every field before saving or publishing.
+            Event facts are extracted automatically from the caption and flyer. Review every field before saving or publishing.
           </p>
           {event && <small>Re-analysis will not overwrite this saved draft.</small>}
           {detail.aiPrefill?.status === "ready" && (
@@ -122,12 +123,12 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
             </ul>
           )}
         </div>
-        <form action={analyzeWebsiteCandidate}>
-          <input name="candidate_id" type="hidden" value={candidateId} />
-          <button type="submit">
-            {detail.aiPrefill ? "Analyze again" : "Analyze flyer"}
-          </button>
-        </form>
+        <AiAnalyzeForm
+          action={analyzeWebsiteCandidate}
+          autoStart={!detail.aiPrefill}
+          candidateId={candidateId}
+          hasPrefill={Boolean(detail.aiPrefill)}
+        />
       </section>
 
       <section aria-labelledby="candidate-images-heading">

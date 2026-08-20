@@ -18,7 +18,7 @@ export function EventCard({ event }: { event: PublicEventListItem }) {
               src={event.cover_image_url}
               width={960}
               height={540}
-              sizes="(max-width: 52rem) 100vw, 52rem"
+              sizes="(max-width: 44rem) 100vw, (max-width: 72rem) 50vw, 33vw"
             />
           </Link>
         )}
