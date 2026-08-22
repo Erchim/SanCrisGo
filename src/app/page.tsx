@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { EventCard } from "@/app/events/_components/event-card";
 import { formatDate } from "@/lib/format-date";
+import { getUpcomingPublishedEvents } from "@/lib/events/public-events";
 import { getLatestPublishedGuides } from "@/lib/guides";
 import { getAbsoluteUrl } from "@/lib/site-url";
 import {
@@ -35,7 +37,10 @@ function websiteJsonLd() {
 }
 
 export default async function Home() {
-  const guides = await getLatestPublishedGuides();
+  const [guides, upcomingEvents] = await Promise.all([
+    getLatestPublishedGuides(),
+    getUpcomingPublishedEvents(3),
+  ]);
   const website = websiteJsonLd();
   const websiteJson = website
     ? JSON.stringify(website).replace(/</g, "\\u003c")
@@ -99,6 +104,23 @@ export default async function Home() {
           </figcaption>
         </figure>
       </section>
+
+      {upcomingEvents.length > 0 && (
+        <section className="home-upcoming-events" aria-labelledby="upcoming-events-heading">
+          <header className="section-heading">
+            <div>
+              <p className="eyebrow">What&apos;s happening</p>
+              <h2 id="upcoming-events-heading">Upcoming events</h2>
+            </div>
+            <Link className="all-guides-link" href="/events">View all events</Link>
+          </header>
+          <ul className="event-list">
+            {upcomingEvents.map((event) => (
+              <EventCard event={event} headingLevel="h3" key={event.id} listingHref="/events" />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="latest-guides" aria-labelledby="latest-guides-heading">
         <header className="section-heading">

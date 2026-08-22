@@ -1,6 +1,10 @@
 import "server-only";
 import { cache } from "react";
-import { EVENT_TIME_ZONE, type EventDateSelection } from "@/lib/events/date-filter";
+import {
+  EVENT_TIME_ZONE,
+  resolveEventDateSelection,
+  type EventDateSelection,
+} from "@/lib/events/date-filter";
 import { getPublicEventMediaUrl } from "@/lib/supabase/event-media";
 import { createPublicSupabaseClient } from "@/lib/supabase/server";
 
@@ -80,6 +84,7 @@ function mapListRow(row: EventListRow): PublicEventListItem {
 
 export async function getPublishedEvents(
   selection: EventDateSelection,
+  limit?: number,
 ): Promise<PublicEventListItem[]> {
   let query = createPublicSupabaseClient()
     .from("events")
@@ -99,9 +104,13 @@ export async function getPublishedEvents(
     query = query.or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await (limit ? query.limit(limit) : query);
   if (error) throw new Error(`Unable to load published events: ${error.message}`);
   return ((data ?? []) as EventListRow[]).map(mapListRow);
+}
+
+export function getUpcomingPublishedEvents(limit: number): Promise<PublicEventListItem[]> {
+  return getPublishedEvents(resolveEventDateSelection(undefined, undefined), limit);
 }
 
 export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent | null> => {

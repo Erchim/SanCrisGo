@@ -12,10 +12,12 @@ import {
 type Props = {
   event: PublicEventListItem;
   listingHref: string;
+  headingLevel?: "h2" | "h3";
 };
 
-export function EventCard({ event, listingHref }: Props) {
+export function EventCard({ event, listingHref, headingLevel = "h2" }: Props) {
   const detailHref = eventDetailHref(event.slug, listingHref);
+  const Heading = headingLevel;
 
   return (
     <li className="event-card" id={`event-${event.slug}`}>
@@ -42,7 +44,7 @@ export function EventCard({ event, listingHref }: Props) {
         </div>
         <div className="event-card-content">
           <p className="event-type">{formatEventType(event.event_type)}</p>
-          <h2><Link href={detailHref}>{event.title}</Link></h2>
+          <Heading><Link href={detailHref}>{event.title}</Link></Heading>
           {event.summary && <p className="event-summary">{event.summary}</p>}
           {(event.venue_name || event.address) && (
             <p className="event-venue">
