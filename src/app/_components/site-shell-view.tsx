@@ -60,6 +60,7 @@ export function SiteFooterView({ navigation }: { navigation: PublicNavigationSta
           <Link href={navigation.eventsHref}>{spanish ? "Eventos" : "Events"}</Link>
           <Link href={navigation.taxiHref}>Taxi</Link>
           <Link href={navigation.guidesHref}>{spanish ? "Guías" : "Guides"}</Link>
+          <Link href={navigation.contributeHref}>{spanish ? "Participa" : "Contribute"}</Link>
           {!spanish && <Link href="/image-credits">Image credits</Link>}
         </nav>
       </div>

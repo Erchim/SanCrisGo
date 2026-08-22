@@ -7,6 +7,7 @@ import {
   guideSlugFromPathname,
   localeFromPathname,
   staticLocalizedPaths,
+  contributePath,
 } from "./locales";
 
 describe("public locale routes", () => {
@@ -21,6 +22,15 @@ describe("public locale routes", () => {
     expect(eventLocalizedPaths("musica-en-vivo")).toEqual({
       en: "/events/musica-en-vivo",
       es: "/es/eventos/musica-en-vivo",
+    });
+  });
+
+  it("generates the bilingual contribution routes", () => {
+    expect(contributePath("en")).toBe("/contribute");
+    expect(contributePath("es")).toBe("/es/participa");
+    expect(staticLocalizedPaths("/es/participa")).toEqual({
+      en: "/contribute",
+      es: "/es/participa",
     });
   });
 

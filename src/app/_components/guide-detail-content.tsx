@@ -2,13 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { PublicEntityActions } from "@/app/_components/public-entity-actions";
+import { VerifiedInfo } from "@/app/_components/verified-info";
 import { formatDate } from "@/lib/format-date";
 import {
   guideBreadcrumbJsonLd,
   withoutLeadingGuideTitle,
 } from "@/lib/guide-presentation";
 import { getPublishedGuidePageData } from "@/lib/guides";
-import { guidesPath, homePath, type Locale } from "@/lib/locales";
+import { guidePath, guidesPath, homePath, type Locale } from "@/lib/locales";
 import { getGuideCardImage } from "@/lib/site-images";
 
 const copy = {
@@ -17,7 +19,6 @@ const copy = {
     home: "Home",
     guides: "Guides",
     published: "Published",
-    verified: "Last verified",
     airportCaption: "Ángel Albino Corzo International Airport · airside facade",
   },
   es: {
@@ -25,7 +26,6 @@ const copy = {
     home: "Inicio",
     guides: "Guías",
     published: "Publicado",
-    verified: "Última verificación",
     airportCaption: "Aeropuerto Internacional Ángel Albino Corzo · fachada del lado aire",
   },
 } as const;
@@ -67,9 +67,6 @@ export async function GuideDetailContent({
           {guide.summary && <p className="lede">{guide.summary}</p>}
           <div className="article-dates">
             <p>{text.published} <time dateTime={guide.published_at}>{formatDate(guide.published_at, locale)}</time></p>
-            {guide.last_verified_at && (
-              <p>{text.verified} <time dateTime={guide.last_verified_at}>{formatDate(guide.last_verified_at, locale)}</time></p>
-            )}
           </div>
         </div>
         {image && (
@@ -92,6 +89,14 @@ export async function GuideDetailContent({
       <div className="markdown">
         <ReactMarkdown>{withoutLeadingGuideTitle(guide.body_markdown)}</ReactMarkdown>
       </div>
+      {guide.last_verified_at && (
+        <VerifiedInfo lastVerifiedAt={guide.last_verified_at} locale={locale} />
+      )}
+      <PublicEntityActions
+        locale={locale}
+        pathname={guidePath(guide.slug, locale)}
+        title={guide.title}
+      />
     </article>
   );
 }

@@ -2,6 +2,7 @@ import {
   eventLocalizedPaths,
   eventSlugFromPathname,
   eventsPath,
+  contributePath,
   guideSlugFromPathname,
   guidesPath,
   homePath,
@@ -18,6 +19,7 @@ export type PublicNavigationState = {
   eventsHref: string;
   taxiHref: string;
   guidesHref: string;
+  contributeHref: string;
 };
 
 export function publicNavigationState(pathname: string): PublicNavigationState {
@@ -28,6 +30,7 @@ export function publicNavigationState(pathname: string): PublicNavigationState {
     eventsHref: eventsPath(locale),
     taxiHref: taxiPath(locale),
     guidesHref: guidesPath(locale),
+    contributeHref: contributePath(locale),
   };
 }
 

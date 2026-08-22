@@ -7,6 +7,7 @@ describe("route-aware public navigation", () => {
     ["/events", "/es/eventos"],
     ["/taxi", "/es/taxi"],
     ["/guides", "/es/guias"],
+    ["/contribute", "/es/participa"],
   ])("maps %s to its Spanish counterpart", (pathname, expected) => {
     expect(knownLocalizedPaths(pathname)?.es).toBe(expected);
   });
@@ -23,6 +24,7 @@ describe("route-aware public navigation", () => {
       eventsHref: events,
       taxiHref: taxi,
       guidesHref: guides,
+      contributeHref: "/es/participa",
     });
   });
 

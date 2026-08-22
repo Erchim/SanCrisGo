@@ -24,4 +24,6 @@ Guide routes are `/guides` in English and `/es/guias` in Spanish. A language swi
 
 Content is pre-moderated. Users cannot self-publish, and website publication remains independent from external publication workflows. Places are an active structured content foundation; the Food, Stay, Learn, and Things to do discovery layers remain staged until they have enough verified underlying content. Rentals, Tours as a dedicated catalog, community features, profiles, comments, ratings, bookings, payments, business claims, advertising, and automated translation remain deferred until explicitly scoped and justified by real product needs.
 
+Public participation is intentionally low-friction and moderated: visitors can contribute Places, Events, services, photos, and corrections through contextual WhatsApp flows, while canonical content remains staff-reviewed. Public accounts and community-write features have not launched.
+
 Volunteer / Opportunities and Support local / Donations are also deferred discovery directions. Future opportunities may cover verified hostel exchange, eco/community projects, teaching, and similar local work. Future support content may surface verified local causes or projects; SanCrisGo does not currently receive or distribute donations.

@@ -34,4 +34,16 @@ describe("Guide sitemap localization", () => {
     });
     expect(entries.filter((entry) => entry.url.endsWith("/es/guias/guia-aeropuerto"))).toHaveLength(1);
   });
+
+  it("includes both real contribution hubs with reciprocal alternates", async () => {
+    mocks.getPublishedGuides.mockResolvedValue([]);
+    const entries = await sitemap();
+    const english = entries.find((entry) => entry.url.endsWith("/contribute"));
+    const spanish = entries.find((entry) => entry.url.endsWith("/es/participa"));
+    expect(english?.alternates?.languages).toMatchObject({
+      en: "https://www.sancrisgo.com/contribute",
+      es: "https://www.sancrisgo.com/es/participa",
+    });
+    expect(spanish?.alternates?.languages).toEqual(english?.alternates?.languages);
+  });
 });

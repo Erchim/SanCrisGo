@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PublicEntityActions } from "@/app/_components/public-entity-actions";
+import { eventCalendarHref } from "@/lib/events/calendar";
 import { eventReturnHref } from "@/lib/events/navigation";
 import {
   formatEventDate,
@@ -14,7 +16,7 @@ import {
 } from "@/lib/events/presentation";
 import { getPublishedEvent, type PublicEvent } from "@/lib/events/public-events";
 import { relevantEventOccurrence } from "@/lib/events/recurrence";
-import { eventLocalizedPaths, eventsPath, homePath, type Locale } from "@/lib/locales";
+import { eventLocalizedPaths, eventPath, eventsPath, homePath, type Locale } from "@/lib/locales";
 import { localizedAlternates } from "@/lib/localized-metadata";
 import { getAbsoluteUrl } from "@/lib/site-url";
 import { linkedPlacePath } from "@/lib/places/presentation";
@@ -305,6 +307,15 @@ export async function EventDetailContent({
           <a href={sourceUrl} rel="noopener noreferrer">{text.source}</a>
         )}
       </div>
+
+      <PublicEntityActions
+        calendarHref={occurrence
+          ? eventCalendarHref(event.slug, locale, occurrence.starts_on)
+          : undefined}
+        locale={locale}
+        pathname={eventPath(event.slug, locale)}
+        title={event.title}
+      />
 
       {event.organizer_name && (
         <p className="event-organizer">

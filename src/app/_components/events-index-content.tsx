@@ -3,7 +3,7 @@ import { EventCard } from "@/app/events/_components/event-card";
 import { resolveEventDateSelection, type EventDateFilter } from "@/lib/events/date-filter";
 import { eventListingHref } from "@/lib/events/navigation";
 import { getPublishedEvents } from "@/lib/events/public-events";
-import { eventsPath, type Locale } from "@/lib/locales";
+import { contributePath, eventsPath, type Locale } from "@/lib/locales";
 
 type SearchParams = {
   view?: string | string[];
@@ -25,6 +25,7 @@ const copy = {
     emptyTitle: "No published events for this date yet",
     emptyText: "Try another date or browse everything that is coming up.",
     allEvents: "View all upcoming events",
+    contribute: "Organizing something in San Cristóbal? Send us your Event.",
   },
   es: {
     eyebrow: "Qué está pasando",
@@ -40,6 +41,7 @@ const copy = {
     emptyTitle: "Todavía no hay eventos publicados para esta fecha",
     emptyText: "Prueba otra fecha o consulta todos los próximos eventos.",
     allEvents: "Ver todos los próximos eventos",
+    contribute: "¿Organizas algo en San Cristóbal? Envíanos tu evento.",
   },
 } as const;
 
@@ -134,6 +136,11 @@ export async function EventsIndexContent({
           </ul>
         )}
       </section>
+
+      <aside className="event-contribution-cta">
+        <p>{text.contribute}</p>
+        <Link href={contributePath(locale)}>{locale === "es" ? "Participa" : "Contribute"} →</Link>
+      </aside>
     </section>
   );
 }

@@ -31,6 +31,7 @@ export default async function PlacesPage() {
         <div className="places-empty">
           <h2>Place pages are being prepared</h2>
           <p>We publish a Place only after its core information has been checked.</p>
+          <p><Link href="/contribute">Know a place we should add?</Link></p>
         </div>
       ) : (
         <ul className="place-list">
@@ -49,6 +50,12 @@ export default async function PlacesPage() {
             </li>
           ))}
         </ul>
+      )}
+      {places.length > 0 && (
+        <aside className="places-contribution-cta">
+          <p>Know a place we should add?</p>
+          <Link href="/contribute">Suggest a Place →</Link>
+        </aside>
       )}
     </section>
   );

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PublicEntityActions } from "@/app/_components/public-entity-actions";
+import { VerifiedInfo } from "@/app/_components/verified-info";
 import { EventCard } from "@/app/events/_components/event-card";
-import { formatDate } from "@/lib/format-date";
+import { buildWhatsAppUrl } from "@/lib/contributions";
 import { safeExternalUrl, safePhoneHref } from "@/lib/events/presentation";
 import { getUpcomingPublishedEventsForPlace } from "@/lib/events/public-events";
 import {
@@ -28,8 +30,7 @@ function whatsAppHref(value: string | null): string | null {
   if (!value) return null;
   const external = safeExternalUrl(value);
   if (external) return external;
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 10 ? `https://wa.me/${digits}` : null;
+  return buildWhatsAppUrl(value);
 }
 
 export default async function PlacePage({ params }: Props) {
@@ -94,14 +95,16 @@ export default async function PlacePage({ params }: Props) {
         </section>
       )}
 
-      {(place.last_verified_at || sourceUrl) && (
-        <aside className="place-verification" aria-label="Information verification">
-          {place.last_verified_at && (
-            <p>Information last verified <time dateTime={place.last_verified_at}>{formatDate(place.last_verified_at)}</time>.</p>
-          )}
-          {sourceUrl && <a href={sourceUrl} rel="noopener noreferrer">Information source ↗</a>}
-        </aside>
+      {place.last_verified_at && (
+        <VerifiedInfo lastVerifiedAt={place.last_verified_at} locale="en" sourceUrl={sourceUrl} />
       )}
+      {!place.last_verified_at && sourceUrl && (
+        <p className="place-source-link">
+          <a href={sourceUrl} rel="noopener noreferrer">Information source ↗</a>
+        </p>
+      )}
+
+      <PublicEntityActions locale="en" pathname={path} title={place.name} />
 
       {events.length > 0 && (
         <section className="place-related-section" aria-labelledby="place-events-heading">
