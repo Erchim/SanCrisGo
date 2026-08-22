@@ -20,6 +20,12 @@ describe("event presentation", () => {
 
   it("turns stored event types into labels", () => {
     expect(formatEventType("live_music")).toBe("Live Music");
+    expect(formatEventType("music", "es")).toBe("Música");
+  });
+
+  it("formats Spanish dates and missing times with Spanish semantics", () => {
+    expect(formatEventDate("2026-08-18", false, "es")).toBe("martes, 18 de agosto de 2026");
+    expect(formatEventTimeRange(null, null, "es")).toBe("Hora por confirmar");
   });
 
   it("allows only HTTP links from event data", () => {

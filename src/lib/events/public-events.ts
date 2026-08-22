@@ -5,6 +5,12 @@ import {
   resolveEventDateSelection,
   type EventDateSelection,
 } from "@/lib/events/date-filter";
+import {
+  hasUsableSpanishEvent,
+  localizeEventText,
+  type EventTextSource,
+} from "@/lib/events/localization";
+import type { Locale } from "@/lib/locales";
 import { getPublicEventMediaUrl } from "@/lib/supabase/event-media";
 import { createPublicSupabaseClient } from "@/lib/supabase/server";
 
@@ -44,10 +50,11 @@ export type PublicEvent = PublicEventListItem & {
 
 type EventListRow = Omit<PublicEventListItem, "cover_image_url"> & {
   cover_image_path: string | null;
-};
+} & EventTextSource;
 
 type EventDetailRow = EventListRow & {
   description: string | null;
+  description_es: string | null;
   ticket_url: string | null;
   organizer_name: string | null;
   organizer_url: string | null;
@@ -62,7 +69,7 @@ type EventDetailRow = EventListRow & {
   }>;
 };
 
-const listFields = "id,title,slug,event_type,summary,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,cover_image_path,published_at,updated_at";
+const listFields = "id,title,title_es,slug,event_type,summary,summary_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,price_text_es,source_language,cover_image_path,published_at,updated_at";
 const localDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: EVENT_TIME_ZONE,
   year: "numeric",
@@ -74,16 +81,32 @@ function selectionDate(instant: string): string {
   return localDateFormatter.format(new Date(instant));
 }
 
-function mapListRow(row: EventListRow): PublicEventListItem {
-  const { cover_image_path: coverImagePath, ...event } = row;
+function mapListRow(row: EventListRow, locale: Locale): PublicEventListItem | null {
+  const text = localizeEventText(row, locale);
+  if (!text) return null;
+
   return {
-    ...event,
-    cover_image_url: getPublicEventMediaUrl(coverImagePath),
+    id: row.id,
+    title: text.title,
+    slug: row.slug,
+    event_type: row.event_type,
+    summary: text.summary,
+    venue_name: row.venue_name,
+    address: row.address,
+    starts_on: row.starts_on,
+    starts_at: row.starts_at,
+    ends_on: row.ends_on,
+    ends_at: row.ends_at,
+    price_text: text.price_text,
+    cover_image_url: getPublicEventMediaUrl(row.cover_image_path),
+    published_at: row.published_at,
+    updated_at: row.updated_at,
   };
 }
 
 export async function getPublishedEvents(
   selection: EventDateSelection,
+  locale: Locale = "en",
   limit?: number,
 ): Promise<PublicEventListItem[]> {
   let query = createPublicSupabaseClient()
@@ -92,6 +115,10 @@ export async function getPublishedEvents(
     .eq("publication_status", "published")
     .order("starts_on", { ascending: true })
     .order("starts_at", { ascending: true, nullsFirst: false });
+
+  if (locale === "es") {
+    query = query.or("title_es.not.is.null,source_language.ilike.es,source_language.ilike.es-%");
+  }
 
   const startDate = selectionDate(selection.start);
 
@@ -106,17 +133,22 @@ export async function getPublishedEvents(
 
   const { data, error } = await (limit ? query.limit(limit) : query);
   if (error) throw new Error(`Unable to load published events: ${error.message}`);
-  return ((data ?? []) as EventListRow[]).map(mapListRow);
+  return ((data ?? []) as EventListRow[])
+    .map((row) => mapListRow(row, locale))
+    .filter((event): event is PublicEventListItem => event !== null);
 }
 
-export function getUpcomingPublishedEvents(limit: number): Promise<PublicEventListItem[]> {
-  return getPublishedEvents(resolveEventDateSelection(undefined, undefined), limit);
+export function getUpcomingPublishedEvents(
+  limit: number,
+  locale: Locale = "en",
+): Promise<PublicEventListItem[]> {
+  return getPublishedEvents(resolveEventDateSelection(undefined, undefined, new Date(), locale), locale, limit);
 }
 
-export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent | null> => {
+const getPublishedEventRow = cache(async (slug: string): Promise<EventDetailRow | null> => {
   const { data, error } = await createPublicSupabaseClient()
     .from("events")
-    .select(`${listFields},description,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,contact_phone,event_media(storage_path,alt_text,sort_order)`)
+    .select(`${listFields},description,description_es,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,contact_phone,event_media(storage_path,alt_text,sort_order)`)
     .eq("slug", slug)
     .eq("publication_status", "published")
     .order("sort_order", { referencedTable: "event_media", ascending: true })
@@ -125,19 +157,33 @@ export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent
   if (error) throw new Error(`Unable to load published event: ${error.message}`);
   if (!data) return null;
 
-  const row = data as EventDetailRow;
-  const { event_media: mediaRows, description, ticket_url, organizer_name, organizer_url, seo_title, seo_description, source_url, contact_phone, ...listRow } = row;
+  return data as EventDetailRow;
+});
+
+export const getPublishedEvent = cache(async (
+  slug: string,
+  locale: Locale = "en",
+): Promise<PublicEvent | null> => {
+  const row = await getPublishedEventRow(slug);
+  if (!row) return null;
+
+  const text = localizeEventText(row, locale);
+  if (!text) return null;
+
+  const listItem = mapListRow(row, locale);
+  if (!listItem) return null;
+
   return {
-    ...mapListRow(listRow),
-    description,
-    ticket_url,
-    organizer_name,
-    organizer_url,
-    seo_title,
-    seo_description,
-    source_url,
-    contact_phone,
-    media: mediaRows.map((media) => ({
+    ...listItem,
+    description: text.description,
+    ticket_url: row.ticket_url,
+    organizer_name: row.organizer_name,
+    organizer_url: row.organizer_url,
+    seo_title: row.seo_title,
+    seo_description: row.seo_description,
+    source_url: row.source_url,
+    contact_phone: row.contact_phone,
+    media: row.event_media.map((media) => ({
       url: getPublicEventMediaUrl(media.storage_path) ?? "",
       altText: media.alt_text,
       sortOrder: media.sort_order,
@@ -146,14 +192,18 @@ export const getPublishedEvent = cache(async (slug: string): Promise<PublicEvent
 });
 
 export async function getPublishedEventsForSitemap(): Promise<
-  Pick<PublicEventListItem, "slug" | "updated_at">[]
+  Array<Pick<PublicEventListItem, "slug" | "updated_at"> & { hasSpanish: boolean }>
 > {
   const { data, error } = await createPublicSupabaseClient()
     .from("events")
-    .select("slug,updated_at")
+    .select("slug,updated_at,source_language,title,title_es,summary,summary_es,price_text,price_text_es")
     .eq("publication_status", "published")
     .order("updated_at", { ascending: false });
 
   if (error) throw new Error(`Unable to load event sitemap entries: ${error.message}`);
-  return data;
+  return (data ?? []).map((event) => ({
+    slug: event.slug,
+    updated_at: event.updated_at,
+    hasSpanish: hasUsableSpanishEvent(event),
+  }));
 }

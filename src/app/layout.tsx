@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { headers } from "next/headers";
+import { SiteFooter, SiteHeader } from "@/app/_components/site-shell";
+import { localeFromPathname } from "@/lib/locales";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -19,31 +21,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const pathname = (await headers()).get("x-sancrisgo-pathname") ?? "/";
+  const locale = localeFromPathname(pathname);
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
-        <header className="site-header">
-          <nav aria-label="Primary navigation">
-            <Link className="site-name" href="/">SanCrisGo</Link>
-            <div className="site-links">
-              <Link href="/events">Events</Link>
-              <Link href="/taxi">Taxi</Link>
-              <Link href="/guides">Guides</Link>
-            </div>
-          </nav>
-        </header>
+        <SiteHeader locale={locale} pathname={pathname} />
         <main>{children}</main>
-        <footer className="site-footer">
-          <div>
-            <p><strong className="footer-name">SanCrisGo</strong><span>Practical local information for San Cristóbal de las Casas.</span></p>
-            <nav aria-label="Footer navigation">
-              <Link href="/events">Events</Link>
-              <Link href="/guides">Guides</Link>
-              <Link href="/image-credits">Image credits</Link>
-            </nav>
-          </div>
-        </footer>
+        <SiteFooter locale={locale} />
       </body>
     </html>
   );

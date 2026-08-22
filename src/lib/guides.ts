@@ -15,6 +15,7 @@ export async function getPublishedGuides(): Promise<GuideListItem[]> {
     .from("guides")
     .select("id,title,slug,summary,category,language,published_at,updated_at,last_verified_at")
     .eq("publication_status", "published")
+    .eq("language", "en")
     .order("published_at", { ascending: false });
   if (error) throw new Error(`Unable to load published guides: ${error.message}`);
   return data;
@@ -25,6 +26,7 @@ export async function getLatestPublishedGuides(): Promise<GuideListItem[]> {
     .from("guides")
     .select("id,title,slug,summary,category,language,published_at,updated_at,last_verified_at")
     .eq("publication_status", "published")
+    .eq("language", "en")
     .order("published_at", { ascending: false })
     .limit(3);
   if (error) throw new Error(`Unable to load latest published guides: ${error.message}`);
@@ -37,6 +39,7 @@ export async function getPublishedGuide(slug: string): Promise<Guide | null> {
     .select("id,title,slug,summary,category,language,published_at,updated_at,last_verified_at,body_markdown,seo_title,seo_description")
     .eq("slug", slug)
     .eq("publication_status", "published")
+    .eq("language", "en")
     .maybeSingle();
   if (error) throw new Error(`Unable to load published guide: ${error.message}`);
   return data;
