@@ -35,6 +35,11 @@ describe("public locale routes", () => {
     ]);
   });
 
+  it("keeps one canonical sitemap path per recurring series and language", () => {
+    expect(eventSitemapPaths("weekly-language-exchange", true)).toHaveLength(2);
+    expect(new Set(eventSitemapPaths("weekly-language-exchange", true)).size).toBe(2);
+  });
+
   it("extracts event slugs only from the matching locale tree", () => {
     expect(eventSlugFromPathname("/es/eventos/musica", "es")).toBe("musica");
     expect(eventSlugFromPathname("/events/music", "en")).toBe("music");

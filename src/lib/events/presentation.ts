@@ -1,4 +1,5 @@
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
+import { formatWeeklyRecurrence, type EventRecurrenceFrequency } from "@/lib/events/recurrence";
 import type { Locale } from "@/lib/locales";
 
 type FormatterSet = {
@@ -114,6 +115,24 @@ export function formatEventTimeRange(
   }
 
   return `${startTime} – ${formatters[locale].date.format(end)}, ${formatters[locale].time.format(end)}`;
+}
+
+export function formatEventRecurrence(
+  recurrenceFrequency: EventRecurrenceFrequency,
+  startsOn: string,
+  locale: Locale = "en",
+): string | null {
+  return recurrenceFrequency === "weekly"
+    ? formatWeeklyRecurrence(startsOn, locale)
+    : null;
+}
+
+export function formatRecurrenceEnd(
+  recurrenceUntil: string,
+  locale: Locale = "en",
+): string {
+  const date = formatEventDate(recurrenceUntil, false, locale);
+  return locale === "es" ? `Se repite hasta ${date}` : `Repeats until ${date}`;
 }
 
 export function safeExternalUrl(value: string | null): string | null {

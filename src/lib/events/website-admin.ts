@@ -7,6 +7,7 @@ import {
   normalizeEventAiPrefill,
   type EventAiPrefill,
 } from "@/lib/events/event-ai-schema";
+import type { EventRecurrenceFrequency } from "@/lib/events/recurrence";
 import {
   createEventMediaSignedUrls,
   EVENT_MEDIA_BUCKET,
@@ -83,6 +84,8 @@ export type EventDraftRow = {
   starts_at: string | null;
   ends_on: string | null;
   ends_at: string | null;
+  recurrence_frequency: EventRecurrenceFrequency;
+  recurrence_until: string | null;
   price_text: string | null;
   price_text_es: string | null;
   contact_phone: string | null;
@@ -129,6 +132,8 @@ export type EventDraftInput = {
   startsAt: string | null;
   endsOn: string | null;
   endsAt: string | null;
+  recurrenceFrequency: EventRecurrenceFrequency;
+  recurrenceUntil: string | null;
   priceText: string | null;
   priceTextEs: string | null;
   contactPhone: string | null;
@@ -230,6 +235,18 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
     throw new EventWebsiteAdminError("End time cannot be before the start time.");
   }
 
+  const repeatsWeekly = formData.get("repeats_weekly") === "weekly";
+  const recurrenceUntil = optionalText(formData.get("recurrence_until"));
+  if (recurrenceUntil && !validDate(recurrenceUntil)) {
+    throw new EventWebsiteAdminError("Recurrence end date is invalid.");
+  }
+  if (recurrenceUntil && !repeatsWeekly) {
+    throw new EventWebsiteAdminError("Enable weekly recurrence before adding a recurrence end date.");
+  }
+  if (recurrenceUntil && recurrenceUntil < startsOn) {
+    throw new EventWebsiteAdminError("Recurrence end date cannot be before the start date.");
+  }
+
   const requestedSlug = optionalText(formData.get("slug"));
   const generatedSlug = [slugifyEvent(title) || "event", startsOn, candidateId.slice(0, 6)]
     .join("-")
@@ -257,6 +274,8 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
     startsAt,
     endsOn,
     endsAt,
+    recurrenceFrequency: repeatsWeekly ? "weekly" : "none",
+    recurrenceUntil: repeatsWeekly ? recurrenceUntil : null,
     priceText: optionalText(formData.get("price_text")),
     priceTextEs: optionalText(formData.get("price_text_es")),
     contactPhone: optionalText(formData.get("contact_phone")),
@@ -402,7 +421,7 @@ export class EventWebsiteAdminService {
     if (publication?.event_id) {
       const { data: eventData, error: eventError } = await this.client
         .from("events")
-        .select("id,title,title_es,slug,event_type,summary,summary_es,description,description_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,price_text_es,contact_phone,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
+        .select("id,title,title_es,slug,event_type,summary,summary_es,description,description_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,recurrence_frequency,recurrence_until,price_text,price_text_es,contact_phone,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
         .eq("id", publication.event_id)
         .maybeSingle();
       if (eventError) throw new EventWebsiteAdminError("Could not load the website event draft.");
@@ -425,8 +444,17 @@ export class EventWebsiteAdminService {
       error_class: string | null;
       analyzed_at: string;
     } | null;
+    const compatibleStoredResult = storedPrefill?.result
+      && typeof storedPrefill.result === "object"
+      && !Array.isArray(storedPrefill.result)
+      ? {
+          recurrence_frequency: null,
+          recurrence_until: null,
+          ...storedPrefill.result,
+        }
+      : storedPrefill?.result;
     const parsedPrefill = storedPrefill?.status === "ready"
-      ? eventAiPrefillSchema.safeParse(storedPrefill.result)
+      ? eventAiPrefillSchema.safeParse(compatibleStoredResult)
       : null;
     const aiPrefill: EventAiPrefillRow | null = storedPrefill ? {
       status: parsedPrefill?.success === false ? "failed" : storedPrefill.status,
@@ -518,6 +546,8 @@ export class EventWebsiteAdminService {
       starts_at: input.startsAt,
       ends_on: input.endsOn,
       ends_at: input.endsAt,
+      recurrence_frequency: input.recurrenceFrequency,
+      recurrence_until: input.recurrenceUntil,
       price_text: input.priceText,
       price_text_es: input.priceTextEs,
       contact_phone: input.contactPhone,

@@ -26,6 +26,8 @@ describe("website event admin", () => {
 
     expect(draft.startsOn).toBe("2026-08-20");
     expect(draft.startsAt).toBeNull();
+    expect(draft.recurrenceFrequency).toBe("none");
+    expect(draft.recurrenceUntil).toBeNull();
     expect(draft.slug).toBe("concierto-en-el-centro-2026-08-20-103e4c");
   });
 
@@ -66,6 +68,26 @@ describe("website event admin", () => {
       title: "Incomplete event",
       starts_on: "2026-08-20",
       ends_time: "20:00",
+    }), candidateId)).toThrow(EventWebsiteAdminError);
+  });
+
+  it("accepts a bounded weekly schedule", () => {
+    const draft = parseEventDraftForm(form({
+      title: "Tuesday class",
+      starts_on: "2026-08-04",
+      repeats_weekly: "weekly",
+      recurrence_until: "2026-10-27",
+    }), candidateId);
+
+    expect(draft.recurrenceFrequency).toBe("weekly");
+    expect(draft.recurrenceUntil).toBe("2026-10-27");
+  });
+
+  it("rejects invalid recurrence state", () => {
+    expect(() => parseEventDraftForm(form({
+      title: "Invalid series",
+      starts_on: "2026-08-20",
+      recurrence_until: "2026-08-19",
     }), candidateId)).toThrow(EventWebsiteAdminError);
   });
 

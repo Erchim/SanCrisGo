@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   formatEventCardDate,
   formatEventDate,
+  formatEventRecurrence,
+  formatRecurrenceEnd,
   formatEventTimeRange,
   formatEventType,
   safeExternalUrl,
@@ -26,6 +28,15 @@ describe("event presentation", () => {
   it("formats Spanish dates and missing times with Spanish semantics", () => {
     expect(formatEventDate("2026-08-18", false, "es")).toBe("martes, 18 de agosto de 2026");
     expect(formatEventTimeRange(null, null, "es")).toBe("Hora por confirmar");
+  });
+
+  it("presents weekly recurrence naturally in English and Spanish", () => {
+    expect(formatEventRecurrence("weekly", "2026-08-07", "en")).toBe("Every Friday");
+    expect(formatEventRecurrence("weekly", "2026-08-07", "es")).toBe("Todos los viernes");
+    expect(formatRecurrenceEnd("2026-09-30", "en"))
+      .toBe("Repeats until Wednesday, September 30, 2026");
+    expect(formatRecurrenceEnd("2026-09-30", "es"))
+      .toBe("Se repite hasta miércoles, 30 de septiembre de 2026");
   });
 
   it("allows only HTTP links from event data", () => {

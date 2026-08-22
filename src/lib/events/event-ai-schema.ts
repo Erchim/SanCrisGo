@@ -31,6 +31,9 @@ export const eventAiPrefillSchema = z.object({
   starts_time: nullableText(5).describe("Local start time as HH:mm in 24-hour notation."),
   ends_on: nullableText(10).describe("End date as YYYY-MM-DD."),
   ends_time: nullableText(5).describe("Local end time as HH:mm in 24-hour notation."),
+  recurrence_frequency: z.enum(["none", "weekly"]).nullable()
+    .describe("Weekly only when the source explicitly says the event repeats every week."),
+  recurrence_until: nullableText(10).describe("Inclusive final weekly occurrence date as YYYY-MM-DD."),
   price_text: nullableText(120).describe("English price text, preserving amounts and currency."),
   price_text_es: nullableText(120).describe("Spanish price text, preserving amounts and currency."),
   contact_phone: nullableText(80),
@@ -88,6 +91,8 @@ export function normalizeEventAiPrefill(value: unknown): EventAiPrefill {
   const startsTime = cleanTime(parsed.starts_time);
   let endsOn = cleanDate(parsed.ends_on);
   let endsTime = cleanTime(parsed.ends_time);
+  const recurrenceFrequency = parsed.recurrence_frequency;
+  let recurrenceUntil = cleanDate(parsed.recurrence_until);
 
   if (endsTime && !startsTime) endsTime = null;
   if (endsTime && !endsOn) endsOn = startsOn;
@@ -95,6 +100,8 @@ export function normalizeEventAiPrefill(value: unknown): EventAiPrefill {
     endsOn = null;
     endsTime = null;
   }
+  if (recurrenceFrequency !== "weekly") recurrenceUntil = null;
+  if (recurrenceUntil && startsOn && recurrenceUntil < startsOn) recurrenceUntil = null;
 
   return {
     title: cleanText(parsed.title),
@@ -110,6 +117,8 @@ export function normalizeEventAiPrefill(value: unknown): EventAiPrefill {
     starts_time: startsTime,
     ends_on: endsOn,
     ends_time: endsTime,
+    recurrence_frequency: recurrenceFrequency,
+    recurrence_until: recurrenceUntil,
     price_text: cleanText(parsed.price_text),
     price_text_es: cleanText(parsed.price_text_es),
     contact_phone: cleanText(parsed.contact_phone),

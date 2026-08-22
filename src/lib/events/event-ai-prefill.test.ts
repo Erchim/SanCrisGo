@@ -24,6 +24,8 @@ function prefill(overrides: Partial<EventAiPrefill> = {}): EventAiPrefill {
     starts_time: "19:00",
     ends_on: null,
     ends_time: null,
+    recurrence_frequency: null,
+    recurrence_until: null,
     price_text: null,
     price_text_es: null,
     contact_phone: null,

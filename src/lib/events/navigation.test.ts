@@ -28,6 +28,11 @@ describe("event navigation", () => {
       .toBe("/events/live-music?from=%2Fevents%3Fview%3Dweekend%23event-live-music");
   });
 
+  it("preserves a recurring occurrence without changing its canonical path", () => {
+    expect(eventDetailHref("weekly-music", "/events?view=weekend", "en", "2026-08-28"))
+      .toBe("/events/weekly-music?from=%2Fevents%3Fview%3Dweekend%23event-weekly-music&occurrence=2026-08-28");
+  });
+
   it("uses the Spanish route tree without changing filter semantics", () => {
     const selection = {
       filter: "weekend" as const,
