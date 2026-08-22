@@ -17,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const spanishTaxiUrl = getAbsoluteUrl("/es/taxi");
   const guidesUrl = getAbsoluteUrl("/guides");
   const spanishGuidesUrl = getAbsoluteUrl("/es/guias");
+  const contributeUrl = getAbsoluteUrl("/contribute");
+  const spanishContributeUrl = getAbsoluteUrl("/es/participa");
   if (
     !homeUrl
     || !spanishHomeUrl
@@ -26,6 +28,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     || !spanishTaxiUrl
     || !guidesUrl
     || !spanishGuidesUrl
+    || !contributeUrl
+    || !spanishContributeUrl
   ) return [];
 
   const [events, englishGuides, spanishGuides, places] = await Promise.all([
@@ -70,6 +74,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: spanishGuidesUrl,
       alternates: { languages: { en: guidesUrl, es: spanishGuidesUrl, "x-default": guidesUrl } },
+    },
+    {
+      url: contributeUrl,
+      alternates: { languages: { en: contributeUrl, es: spanishContributeUrl, "x-default": contributeUrl } },
+    },
+    {
+      url: spanishContributeUrl,
+      alternates: { languages: { en: contributeUrl, es: spanishContributeUrl, "x-default": contributeUrl } },
     },
     ...events.flatMap((event) => {
       const paths = eventSitemapPaths(event.slug, event.hasSpanish);

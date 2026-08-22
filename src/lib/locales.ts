@@ -37,6 +37,10 @@ export function guidePath(slug: string, locale: Locale): string {
   return `${guidesPath(locale)}/${encodeURIComponent(slug)}`;
 }
 
+export function contributePath(locale: Locale): string {
+  return locale === "es" ? "/es/participa" : "/contribute";
+}
+
 export function staticLocalizedPaths(pathname: string): LocalizedPaths | null {
   if (pathname === "/" || pathname === "/es") {
     return { en: "/", es: "/es" };
@@ -49,6 +53,9 @@ export function staticLocalizedPaths(pathname: string): LocalizedPaths | null {
   }
   if (pathname === "/guides" || pathname === "/es/guias") {
     return { en: "/guides", es: "/es/guias" };
+  }
+  if (pathname === "/contribute" || pathname === "/es/participa") {
+    return { en: "/contribute", es: "/es/participa" };
   }
   return null;
 }

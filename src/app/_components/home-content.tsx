@@ -4,7 +4,7 @@ import { GuideCard } from "@/app/_components/guide-card";
 import { EventCard } from "@/app/events/_components/event-card";
 import { getUpcomingPublishedEvents } from "@/lib/events/public-events";
 import { getLatestPublishedGuides } from "@/lib/guides";
-import { eventsPath, guidesPath, taxiPath, type Locale } from "@/lib/locales";
+import { contributePath, eventsPath, guidesPath, taxiPath, type Locale } from "@/lib/locales";
 import { getAbsoluteUrl } from "@/lib/site-url";
 import { homeHeroImage } from "@/lib/site-images";
 
@@ -29,6 +29,8 @@ const copy = {
     latestGuides: "Latest guides",
     viewGuides: "View all guides",
     noGuides: "No guides have been published yet. Please check back soon.",
+    contributePrompt: "Know something SanCrisGo should include?",
+    contributeLink: "Contribute",
   },
   es: {
     heroEyebrow: "San Cristóbal, más fácil",
@@ -50,6 +52,8 @@ const copy = {
     latestGuides: "Guías recientes",
     viewGuides: "Ver todas las guías",
     noGuides: "Todavía no hay guías publicadas. Vuelve pronto.",
+    contributePrompt: "¿Conoces algo que SanCrisGo debería incluir?",
+    contributeLink: "Participa",
   },
 } as const;
 
@@ -178,6 +182,11 @@ export async function HomeContent({ locale }: { locale: Locale }) {
             </ul>
           )}
       </section>
+
+      <aside className="home-contribution-prompt">
+        <p>{text.contributePrompt}</p>
+        <Link href={contributePath(locale)}>{text.contributeLink} →</Link>
+      </aside>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Locale } from "@/lib/locales";
+import { buildWhatsAppUrl } from "@/lib/contributions";
 
 const copy = {
   en: {
@@ -46,7 +47,7 @@ const copy = {
 
 export function TaxiContent({ locale }: { locale: Locale }) {
   const text = copy[locale];
-  const whatsappUrl = `https://wa.me/5219671156950?text=${encodeURIComponent(text.message)}`;
+  const whatsappUrl = buildWhatsAppUrl("5219671156950", text.message) as string;
 
   return (
     <article className="taxi-page">
