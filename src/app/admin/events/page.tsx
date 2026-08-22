@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { AdminNav } from "@/app/admin/_components/admin-nav";
 import { requireAdmin } from "@/lib/admin-auth";
 import {
   EventWebsiteAdminService,
   type WebsiteQueueState,
 } from "@/lib/events/website-admin";
-import { signOut } from "@/app/admin/login/actions";
 import { skipWebsiteCandidate } from "./actions";
 
 export const metadata: Metadata = {
@@ -60,6 +60,7 @@ export default async function AdminEventsPage({ searchParams }: Props) {
 
   return (
     <section className="admin-page admin-queue">
+      <AdminNav current="events" displayName={admin.displayName} />
       <header className="admin-heading">
         <div>
           <p className="eyebrow">Website publishing</p>
@@ -67,14 +68,6 @@ export default async function AdminEventsPage({ searchParams }: Props) {
           <p className="lede">
             Review WhatsApp candidates here without changing their Instagram status.
           </p>
-        </div>
-        <div className="admin-heading-actions">
-          <Link className="admin-secondary-link" href="/admin/places">Places</Link>
-          <form action={signOut}>
-            <button className="admin-secondary-button" type="submit">
-              Sign out{admin.displayName ? ` · ${admin.displayName}` : ""}
-            </button>
-          </form>
         </div>
       </header>
 

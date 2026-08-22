@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdminContext } from "@/lib/admin-auth";
 import { PlaceForm } from "@/app/admin/places/_components/place-form";
 import { AdminPlacesService } from "@/lib/places/admin-places";
 import { AdminVenueWorkflowService } from "@/lib/places/admin-venue-workflow";
@@ -22,18 +22,23 @@ type Props = { searchParams: Promise<{
 }> };
 
 export default async function NewPlacePage({ searchParams }: Props) {
-  await requireAdmin();
+  const { identity: admin, client } = await requireAdminContext();
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;
   const groupKey = typeof params.venue_group_key === "string" ? params.venue_group_key : null;
   const eventIds = Array.isArray(params.selected_event_id)
     ? params.selected_event_id
     : params.selected_event_id ? [params.selected_event_id] : [];
-  if (!groupKey) return <PlaceForm place={null} error={error} />;
+  if (!groupKey) {
+    return <PlaceForm adminDisplayName={admin.displayName} place={null} error={error} />;
+  }
+
+  const placesService = new AdminPlacesService(client);
+  const venueService = new AdminVenueWorkflowService(client, placesService);
 
   const [group, places] = await Promise.all([
-    new AdminVenueWorkflowService().getGroup(groupKey),
-    new AdminPlacesService().getMatchOptions(),
+    venueService.getGroup(groupKey),
+    placesService.getMatchOptions(),
   ]);
   if (!group || selectedVenueEvents(group, eventIds).length !== eventIds.length) notFound();
   const venueContext = {
@@ -42,5 +47,12 @@ export default async function NewPlacePage({ searchParams }: Props) {
     prefill: venuePlacePrefill(group, eventIds),
     matches: possiblePlaceMatches(group, places),
   };
-  return <PlaceForm place={null} error={error} venueContext={venueContext} />;
+  return (
+    <PlaceForm
+      adminDisplayName={admin.displayName}
+      place={null}
+      error={error}
+      venueContext={venueContext}
+    />
+  );
 }

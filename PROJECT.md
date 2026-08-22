@@ -4,7 +4,7 @@
 
 SanCrisGo is a live local city portal for San Cristóbal de las Casas, Chiapas. It serves visitors and residents with trustworthy, interconnected local information and useful next actions. Organic search is the primary acquisition channel, so public pages require stable URLs, complete server-rendered HTML, clear search intent, and strong internal linking.
 
-The current public product includes Events, English Guides, Taxi, and the first structured Places foundation. Staff can maintain verified Places, derive reviewed Place drafts from existing Event venue data, connect Events to them, and publish useful Place detail pages; this does not imply a large public Places inventory yet. Events support verified one-time and simple weekly schedules without duplicating the underlying series. The information model connects Places, Events, and Guides, with user-facing discovery layers such as Things to do, Food, Stay, and Learn, plus contextual utilities/actions such as Taxi. A visible discovery section does not automatically require a separate database entity.
+The current public product includes Events, bilingual Guides, Taxi, and the first structured Places foundation. The authenticated staff admin has a shared root and navigation. Staff use their authenticated identity and row-level security to maintain verified Places, derive reviewed Place drafts from existing Event venue data, connect Events to them, and publish useful Place detail pages; this does not imply a large public Places inventory yet. Events support verified one-time and simple weekly schedules without duplicating the underlying series. The information model connects Places, Events, and Guides, with user-facing discovery layers such as Things to do, Food, Stay, and Learn, plus contextual utilities/actions such as Taxi. A visible discovery section does not automatically require a separate database entity.
 
 ## Production architecture
 
@@ -16,9 +16,9 @@ The current public product includes Events, English Guides, Taxi, and the first 
 
 ## Languages and public URLs
 
-English is the default language and remains unprefixed. Spanish uses the `/es` tree. The bilingual public foundation currently covers Home, Events, Event details, and Taxi. Event presentation uses existing structured English and Spanish fields, with original-source fallback only when it is linguistically safe.
+English is the default language and remains unprefixed. Spanish uses the `/es` tree. The bilingual public foundation currently covers Home, Events, Event details, Taxi, and Guides. Event presentation uses existing structured English and Spanish fields, with original-source fallback only when it is linguistically safe. Guides remain language-specific records linked by explicit translation-family identity; the current published Transport Guides exist in English and Spanish.
 
-Guides remain English-first at `/guides` until real translated Guide content exists; the site must not expose empty Spanish Guide routes or false language counterparts. Future public entities and discovery layers should follow the same stable, server-rendered URL and locale conventions.
+Guide routes are `/guides` in English and `/es/guias` in Spanish. A language switch appears only when a real published counterpart exists. Future public entities and discovery layers should follow the same stable, server-rendered URL and locale conventions.
 
 ## Content and staged work
 

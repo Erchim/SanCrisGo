@@ -46,6 +46,9 @@ const guideImages: Record<string, SiteImageAsset> = {
   "tuxtla-gutierrez-airport-to-san-cristobal-de-las-casas": airportFacadeImage,
   "san-cristobal-de-las-casas-to-tuxtla-gutierrez-airport": airportFacadeImage,
   "tuxtla-gutierrez-to-san-cristobal-de-las-casas": highlandMistBackground,
+  "de-san-cristobal-de-las-casas-al-aeropuerto-de-tuxtla-gutierrez": airportFacadeImage,
+  "del-aeropuerto-de-tuxtla-gutierrez-a-san-cristobal-de-las-casas": airportFacadeImage,
+  "de-tuxtla-gutierrez-a-san-cristobal-de-las-casas": highlandMistBackground,
 };
 
 export function getGuideCardImage(slug: string): SiteImageAsset | null {

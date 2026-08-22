@@ -1,6 +1,13 @@
 import "server-only";
 import { getPublishedEvent } from "@/lib/events/public-events";
-import { eventLocalizedPaths, type LocalizedPaths } from "@/lib/locales";
+import { getPublishedGuidePageData } from "@/lib/guides";
+import {
+  eventLocalizedPaths,
+  eventSlugFromPathname,
+  guideSlugFromPathname,
+  localeFromPathname,
+  type LocalizedPaths,
+} from "@/lib/locales";
 import { knownLocalizedPaths } from "@/lib/locale-navigation";
 
 export async function resolveLocalizedPaths(
@@ -9,8 +16,14 @@ export async function resolveLocalizedPaths(
   const knownPaths = knownLocalizedPaths(pathname);
   if (knownPaths !== undefined) return knownPaths;
 
-  const encodedSlug = pathname.slice("/events/".length);
-  const slug = decodeURIComponent(encodedSlug);
-  const spanishEvent = await getPublishedEvent(slug, "es");
-  return spanishEvent ? eventLocalizedPaths(slug) : null;
+  const locale = localeFromPathname(pathname);
+  const eventSlug = eventSlugFromPathname(pathname, locale);
+  if (eventSlug) {
+    const spanishEvent = await getPublishedEvent(eventSlug, "es");
+    return spanishEvent ? eventLocalizedPaths(eventSlug) : null;
+  }
+
+  const guideSlug = guideSlugFromPathname(pathname, locale);
+  if (!guideSlug) return null;
+  return (await getPublishedGuidePageData(guideSlug, locale))?.localizedPaths ?? null;
 }

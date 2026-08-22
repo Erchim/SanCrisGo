@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getPublishedEventsForSitemap } from "@/lib/events/public-events";
 import { getPublishedGuides } from "@/lib/guides";
-import { eventSitemapPaths } from "@/lib/locales";
+import { eventSitemapPaths, guidePath } from "@/lib/locales";
 import { getPublishedPlaces } from "@/lib/places/public-places";
 import { placeSitemapPaths } from "@/lib/places/presentation";
 import { getAbsoluteUrl } from "@/lib/site-url";
@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const taxiUrl = getAbsoluteUrl("/taxi");
   const spanishTaxiUrl = getAbsoluteUrl("/es/taxi");
   const guidesUrl = getAbsoluteUrl("/guides");
+  const spanishGuidesUrl = getAbsoluteUrl("/es/guias");
   if (
     !homeUrl
     || !spanishHomeUrl
@@ -24,13 +25,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     || !taxiUrl
     || !spanishTaxiUrl
     || !guidesUrl
+    || !spanishGuidesUrl
   ) return [];
 
-  const [events, guides, places] = await Promise.all([
+  const [events, englishGuides, spanishGuides, places] = await Promise.all([
     getPublishedEventsForSitemap(),
-    getPublishedGuides(),
+    getPublishedGuides("en"),
+    getPublishedGuides("es"),
     getPublishedPlaces(),
   ]);
+  const spanishGuidesByFamily = new Map(
+    spanishGuides.map((guide) => [guide.translation_group_id, guide]),
+  );
 
   return [
     {
@@ -57,7 +63,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: spanishTaxiUrl,
       alternates: { languages: { en: taxiUrl, es: spanishTaxiUrl, "x-default": taxiUrl } },
     },
-    { url: guidesUrl },
+    {
+      url: guidesUrl,
+      alternates: { languages: { en: guidesUrl, es: spanishGuidesUrl, "x-default": guidesUrl } },
+    },
+    {
+      url: spanishGuidesUrl,
+      alternates: { languages: { en: guidesUrl, es: spanishGuidesUrl, "x-default": guidesUrl } },
+    },
     ...events.flatMap((event) => {
       const paths = eventSitemapPaths(event.slug, event.hasSpanish);
       const englishUrl = getAbsoluteUrl(paths[0]) as string;
@@ -72,10 +85,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         { url: spanishUrl, lastModified: event.updated_at, alternates },
       ];
     }),
-    ...guides.map((guide) => ({
-      url: getAbsoluteUrl(`/guides/${guide.slug}`) as string,
-      lastModified: guide.updated_at,
-    })),
+    ...englishGuides.flatMap((guide) => {
+      const spanish = spanishGuidesByFamily.get(guide.translation_group_id);
+      const englishUrl = getAbsoluteUrl(guidePath(guide.slug, "en")) as string;
+      if (!spanish) return [{ url: englishUrl, lastModified: guide.updated_at }];
+      const spanishUrl = getAbsoluteUrl(guidePath(spanish.slug, "es")) as string;
+      const alternates = {
+        languages: { en: englishUrl, es: spanishUrl, "x-default": englishUrl },
+      };
+      return [
+        { url: englishUrl, lastModified: guide.updated_at, alternates },
+        { url: spanishUrl, lastModified: spanish.updated_at, alternates },
+      ];
+    }),
     ...(places.length > 0 ? [{ url: getAbsoluteUrl("/places") as string }] : []),
     ...placeSitemapPaths(places).map((path, index) => ({
       url: getAbsoluteUrl(path) as string,

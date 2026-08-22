@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminNav } from "@/app/admin/_components/admin-nav";
 import { savePlace } from "@/app/admin/places/actions";
 import {
   PLACE_TYPES,
@@ -23,6 +24,7 @@ export function PlaceForm({
   status,
   error,
   venueContext,
+  adminDisplayName,
 }: {
   place: AdminPlaceRow | null;
   status?: string;
@@ -33,10 +35,12 @@ export function PlaceForm({
     prefill: VenuePlacePrefill;
     matches: PossiblePlaceMatch[];
   };
+  adminDisplayName?: string | null;
 }) {
   const prefill = venueContext?.prefill;
   return (
     <article className="admin-page admin-editor">
+      <AdminNav current={venueContext ? "venues" : "places"} displayName={adminDisplayName} />
       <Link className="back-link" href={venueContext ? "/admin/places/venues" : "/admin/places"}>
         ← {venueContext ? "Unlinked venues" : "Places"}
       </Link>

@@ -1,6 +1,5 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 
 export const PLACE_TYPES = [
   "attraction",
@@ -225,7 +224,7 @@ const adminPlaceFields = "id,name,slug,place_type,summary,description,address,ne
 const LINK_COUNT_PAGE_SIZE = 500;
 
 export class AdminPlacesService {
-  constructor(private readonly client: SupabaseClient = createServiceRoleSupabaseClient()) {}
+  constructor(private readonly client: SupabaseClient) {}
 
   async getPlaces(): Promise<AdminPlaceListItem[]> {
     const [placeResult, eventCounts] = await Promise.all([

@@ -8,11 +8,11 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const pageData = await getPublishedGuidePageData(slug, "en");
-  return pageData ? buildGuideMetadata(pageData, "en") : { title: "Guide not found" };
+  const pageData = await getPublishedGuidePageData(slug, "es");
+  return pageData ? buildGuideMetadata(pageData, "es") : { title: "Guía no encontrada" };
 }
 
-export default async function GuidePage({ params }: Props) {
+export default async function SpanishGuidePage({ params }: Props) {
   const { slug } = await params;
-  return <GuideDetailContent locale="en" slug={slug} />;
+  return <GuideDetailContent locale="es" slug={slug} />;
 }

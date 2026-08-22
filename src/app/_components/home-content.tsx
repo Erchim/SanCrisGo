@@ -1,12 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import { GuideCard } from "@/app/_components/guide-card";
 import { EventCard } from "@/app/events/_components/event-card";
-import { formatDate } from "@/lib/format-date";
 import { getUpcomingPublishedEvents } from "@/lib/events/public-events";
 import { getLatestPublishedGuides } from "@/lib/guides";
-import { eventsPath, taxiPath, type Locale } from "@/lib/locales";
+import { eventsPath, guidesPath, taxiPath, type Locale } from "@/lib/locales";
 import { getAbsoluteUrl } from "@/lib/site-url";
-import { getGuideCardImage, homeHeroImage } from "@/lib/site-images";
+import { homeHeroImage } from "@/lib/site-images";
 
 const copy = {
   en: {
@@ -25,10 +25,14 @@ const copy = {
     happening: "What's happening",
     upcoming: "Upcoming events",
     viewEvents: "View all events",
+    guideEyebrow: "Plan with current information",
+    latestGuides: "Latest guides",
+    viewGuides: "View all guides",
+    noGuides: "No guides have been published yet. Please check back soon.",
   },
   es: {
     heroEyebrow: "San Cristóbal, más fácil",
-    title: "Eventos y ayuda práctica en San Cristóbal",
+    title: "Guías, eventos y ayuda práctica en San Cristóbal",
     lede: "Información práctica y local para orientarte, planear el día y descubrir qué está pasando en la ciudad.",
     quickHeading: "Encuentra lo que necesitas",
     quickLabel: "Acceso rápido",
@@ -42,6 +46,10 @@ const copy = {
     happening: "Qué está pasando",
     upcoming: "Próximos eventos",
     viewEvents: "Ver todos los eventos",
+    guideEyebrow: "Planea con información actual",
+    latestGuides: "Guías recientes",
+    viewGuides: "Ver todas las guías",
+    noGuides: "Todavía no hay guías publicadas. Vuelve pronto.",
   },
 } as const;
 
@@ -61,11 +69,12 @@ function websiteJsonLd(locale: Locale) {
 
 export async function HomeContent({ locale }: { locale: Locale }) {
   const [guides, upcomingEvents] = await Promise.all([
-    locale === "en" ? getLatestPublishedGuides() : Promise.resolve([]),
+    getLatestPublishedGuides(locale),
     getUpcomingPublishedEvents(3, locale),
   ]);
   const text = copy[locale];
   const eventsHref = eventsPath(locale);
+  const guidesHref = guidesPath(locale);
   const website = websiteJsonLd(locale);
   const websiteJson = website
     ? JSON.stringify(website).replace(/</g, "\\u003c")
@@ -101,15 +110,13 @@ export async function HomeContent({ locale }: { locale: Locale }) {
                     <span aria-hidden="true" className="home-quick-arrow">→</span>
                   </Link>
                 </li>
-                {locale === "en" && (
-                  <li>
-                    <Link className="home-quick-tile" href="/guides">
-                      <span className="home-quick-label">{text.guides}</span>
-                      <span>{text.guidesPurpose}</span>
-                      <span aria-hidden="true" className="home-quick-arrow">→</span>
-                    </Link>
-                  </li>
-                )}
+                <li>
+                  <Link className="home-quick-tile" href={guidesHref}>
+                    <span className="home-quick-label">{text.guides}</span>
+                    <span>{text.guidesPurpose}</span>
+                    <span aria-hidden="true" className="home-quick-arrow">→</span>
+                  </Link>
+                </li>
               </ul>
             </nav>
           </section>
@@ -152,58 +159,25 @@ export async function HomeContent({ locale }: { locale: Locale }) {
         </section>
       )}
 
-      {locale === "en" && (
-        <section className="latest-guides" aria-labelledby="latest-guides-heading">
+      <section className="latest-guides" aria-labelledby={`latest-guides-heading-${locale}`}>
           <header className="section-heading">
             <div>
-              <p className="eyebrow">Plan with current information</p>
-              <h2 id="latest-guides-heading">Latest guides</h2>
+              <p className="eyebrow">{text.guideEyebrow}</p>
+              <h2 id={`latest-guides-heading-${locale}`}>{text.latestGuides}</h2>
             </div>
-            <Link className="all-guides-link" href="/guides">View all guides</Link>
+            <Link className="all-guides-link" href={guidesHref}>{text.viewGuides}</Link>
           </header>
 
           {guides.length === 0 ? (
-            <p>No guides have been published yet. Please check back soon.</p>
+            <p>{text.noGuides}</p>
           ) : (
             <ul className="guide-list">
-              {guides.map((guide) => {
-                const image = getGuideCardImage(guide.slug);
-                return (
-                  <li className="guide-card" key={guide.id}>
-                    <article>
-                      {image && (
-                        <Link aria-hidden="true" className="guide-card-media" href={`/guides/${guide.slug}`} tabIndex={-1}>
-                          <Image
-                            alt={image.alt.en}
-                            aria-hidden={image.decorative ? "true" : undefined}
-                            height={image.height}
-                            loading="lazy"
-                            sizes="(max-width: 44rem) 100vw, (max-width: 72rem) 50vw, 33vw"
-                            src={image.src}
-                            width={image.width}
-                          />
-                        </Link>
-                      )}
-                      <div className="guide-card-content">
-                        <p className="guide-category">{guide.category}</p>
-                        <h3><Link href={`/guides/${guide.slug}`}>{guide.title}</Link></h3>
-                        <p className="guide-summary">
-                          {guide.summary ?? "Open the guide for practical local information."}
-                        </p>
-                        {guide.last_verified_at && (
-                          <p className="guide-meta">
-                            Last verified <time dateTime={guide.last_verified_at}>{formatDate(guide.last_verified_at)}</time>
-                          </p>
-                        )}
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
+              {guides.map((guide) => (
+                <GuideCard guide={guide} headingLevel="h3" key={guide.id} locale={locale} />
+              ))}
             </ul>
           )}
-        </section>
-      )}
+      </section>
     </div>
   );
 }

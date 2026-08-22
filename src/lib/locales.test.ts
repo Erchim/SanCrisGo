@@ -3,6 +3,8 @@ import {
   eventLocalizedPaths,
   eventSitemapPaths,
   eventSlugFromPathname,
+  guideLocalizedPaths,
+  guideSlugFromPathname,
   localeFromPathname,
   staticLocalizedPaths,
 } from "./locales";
@@ -22,9 +24,13 @@ describe("public locale routes", () => {
     });
   });
 
-  it("does not claim a localized counterpart for Guides", () => {
-    expect(staticLocalizedPaths("/guides")).toBeNull();
-    expect(staticLocalizedPaths("/guides/getting-around")).toBeNull();
+  it("maps Guide indexes and builds localized detail paths", () => {
+    expect(staticLocalizedPaths("/guides")).toEqual({ en: "/guides", es: "/es/guias" });
+    expect(staticLocalizedPaths("/es/guias")).toEqual({ en: "/guides", es: "/es/guias" });
+    expect(guideLocalizedPaths("airport-guide", "guia-aeropuerto")).toEqual({
+      en: "/guides/airport-guide",
+      es: "/es/guias/guia-aeropuerto",
+    });
   });
 
   it("adds Spanish Event sitemap paths only for eligible content", () => {
@@ -44,5 +50,11 @@ describe("public locale routes", () => {
     expect(eventSlugFromPathname("/es/eventos/musica", "es")).toBe("musica");
     expect(eventSlugFromPathname("/events/music", "en")).toBe("music");
     expect(eventSlugFromPathname("/events/music/extra", "en")).toBeNull();
+  });
+
+  it("extracts localized Guide slugs without guessing a counterpart", () => {
+    expect(guideSlugFromPathname("/guides/airport-guide", "en")).toBe("airport-guide");
+    expect(guideSlugFromPathname("/es/guias/guia-aeropuerto", "es")).toBe("guia-aeropuerto");
+    expect(guideSlugFromPathname("/es/guias/guia/extra", "es")).toBeNull();
   });
 });

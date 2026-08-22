@@ -1,4 +1,5 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createAuthenticatedSupabaseClient } from "@/lib/supabase/auth-server";
 
@@ -15,8 +16,9 @@ type ProfileRow = {
   display_name: string | null;
 };
 
-export async function getAdminIdentity(): Promise<AdminIdentity | null> {
-  const client = await createAuthenticatedSupabaseClient();
+async function getAdminIdentityWithClient(
+  client: SupabaseClient,
+): Promise<AdminIdentity | null> {
   const { data: { user }, error: userError } = await client.auth.getUser();
 
   if (userError || !user) return null;
@@ -43,8 +45,20 @@ export async function getAdminIdentity(): Promise<AdminIdentity | null> {
   };
 }
 
-export async function requireAdmin(): Promise<AdminIdentity> {
-  const identity = await getAdminIdentity();
+export async function getAdminIdentity(): Promise<AdminIdentity | null> {
+  return getAdminIdentityWithClient(await createAuthenticatedSupabaseClient());
+}
+
+export async function requireAdminContext(): Promise<{
+  identity: AdminIdentity;
+  client: SupabaseClient;
+}> {
+  const client = await createAuthenticatedSupabaseClient();
+  const identity = await getAdminIdentityWithClient(client);
   if (!identity) redirect("/admin/login");
-  return identity;
+  return { identity, client };
+}
+
+export async function requireAdmin(): Promise<AdminIdentity> {
+  return (await requireAdminContext()).identity;
 }

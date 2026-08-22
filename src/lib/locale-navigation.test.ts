@@ -6,20 +6,23 @@ describe("route-aware public navigation", () => {
     ["/", "/es"],
     ["/events", "/es/eventos"],
     ["/taxi", "/es/taxi"],
+    ["/guides", "/es/guias"],
   ])("maps %s to its Spanish counterpart", (pathname, expected) => {
     expect(knownLocalizedPaths(pathname)?.es).toBe(expected);
   });
 
   it.each([
-    ["/es", "/es", "/es/eventos", "/es/taxi"],
-    ["/es/eventos", "/es", "/es/eventos", "/es/taxi"],
-    ["/es/taxi", "/es", "/es/eventos", "/es/taxi"],
-  ])("keeps navigation inside Spanish from %s", (pathname, home, events, taxi) => {
+    ["/es", "/es", "/es/eventos", "/es/taxi", "/es/guias"],
+    ["/es/eventos", "/es", "/es/eventos", "/es/taxi", "/es/guias"],
+    ["/es/taxi", "/es", "/es/eventos", "/es/taxi", "/es/guias"],
+    ["/es/guias", "/es", "/es/eventos", "/es/taxi", "/es/guias"],
+  ])("keeps navigation inside Spanish from %s", (pathname, home, events, taxi, guides) => {
     expect(publicNavigationState(pathname)).toMatchObject({
       locale: "es",
       homeHref: home,
       eventsHref: events,
       taxiHref: taxi,
+      guidesHref: guides,
     });
   });
 
@@ -41,8 +44,7 @@ describe("route-aware public navigation", () => {
   });
 
   it("does not claim a Spanish counterpart for English-only routes", () => {
-    expect(knownLocalizedPaths("/guides")).toBeNull();
-    expect(knownLocalizedPaths("/guides/getting-around")).toBeNull();
+    expect(knownLocalizedPaths("/guides/getting-around")).toBeUndefined();
     expect(knownLocalizedPaths("/places/city-museum")).toBeNull();
   });
 });
