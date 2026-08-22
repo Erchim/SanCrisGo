@@ -25,6 +25,15 @@ function errorMessage(error: unknown): string {
     : "Unexpected website event error. Please try again.";
 }
 
+function revalidatePublicEvent(slug: string) {
+  revalidatePath("/");
+  revalidatePath("/es");
+  revalidatePath("/events");
+  revalidatePath("/es/eventos");
+  revalidatePath(`/events/${slug}`);
+  revalidatePath(`/es/eventos/${slug}`);
+}
+
 export async function analyzeWebsiteCandidate(formData: FormData) {
   await requireAdmin();
   let candidateId = "";
@@ -70,7 +79,7 @@ export async function saveEventDraft(formData: FormData) {
 
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${candidateId}`);
-  if (slug) revalidatePath(`/events/${slug}`);
+  if (slug) revalidatePublicEvent(slug);
   redirect(`/admin/events/${candidateId}?status=saved`);
 }
 
@@ -94,8 +103,7 @@ export async function publishWebsiteEvent(formData: FormData) {
     redirect(`${target}?error=${encodeURIComponent(failure)}`);
   }
 
-  revalidatePath("/events");
-  revalidatePath(`/events/${slug}`);
+  revalidatePublicEvent(slug);
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${candidateId}`);
   redirect("/admin/events?status=published");

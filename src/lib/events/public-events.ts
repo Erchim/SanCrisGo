@@ -10,6 +10,11 @@ import {
   localizeEventText,
   type EventTextSource,
 } from "@/lib/events/localization";
+import {
+  expandEventOccurrences,
+  selectUpcomingOccurrences,
+  type EventRecurrenceFrequency,
+} from "@/lib/events/recurrence";
 import type { Locale } from "@/lib/locales";
 import { getPublicEventMediaUrl } from "@/lib/supabase/event-media";
 import { createPublicSupabaseClient } from "@/lib/supabase/server";
@@ -26,6 +31,9 @@ export type PublicEventListItem = {
   starts_at: string | null;
   ends_on: string | null;
   ends_at: string | null;
+  recurrence_frequency: EventRecurrenceFrequency;
+  recurrence_until: string | null;
+  series_starts_on: string;
   price_text: string | null;
   cover_image_url: string | null;
   published_at: string;
@@ -48,7 +56,7 @@ export type PublicEvent = PublicEventListItem & {
   }>;
 };
 
-type EventListRow = Omit<PublicEventListItem, "cover_image_url"> & {
+type EventListRow = Omit<PublicEventListItem, "cover_image_url" | "series_starts_on"> & {
   cover_image_path: string | null;
 } & EventTextSource;
 
@@ -69,7 +77,7 @@ type EventDetailRow = EventListRow & {
   }>;
 };
 
-const listFields = "id,title,title_es,slug,event_type,summary,summary_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,price_text,price_text_es,source_language,cover_image_path,published_at,updated_at";
+const listFields = "id,title,title_es,slug,event_type,summary,summary_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,recurrence_frequency,recurrence_until,price_text,price_text_es,source_language,cover_image_path,published_at,updated_at";
 const localDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: EVENT_TIME_ZONE,
   year: "numeric",
@@ -97,6 +105,9 @@ function mapListRow(row: EventListRow, locale: Locale): PublicEventListItem | nu
     starts_at: row.starts_at,
     ends_on: row.ends_on,
     ends_at: row.ends_at,
+    recurrence_frequency: row.recurrence_frequency,
+    recurrence_until: row.recurrence_until,
+    series_starts_on: row.starts_on,
     price_text: text.price_text,
     cover_image_url: getPublicEventMediaUrl(row.cover_image_path),
     published_at: row.published_at,
@@ -109,33 +120,42 @@ export async function getPublishedEvents(
   locale: Locale = "en",
   limit?: number,
 ): Promise<PublicEventListItem[]> {
-  let query = createPublicSupabaseClient()
-    .from("events")
-    .select(listFields)
-    .eq("publication_status", "published")
-    .order("starts_on", { ascending: true })
-    .order("starts_at", { ascending: true, nullsFirst: false });
-
-  if (locale === "es") {
-    query = query.or("title_es.not.is.null,source_language.ilike.es,source_language.ilike.es-%");
-  }
-
   const startDate = selectionDate(selection.start);
+  const endDate = selection.end ? selectionDate(selection.end) : null;
+  const eventQuery = () => {
+    let query = createPublicSupabaseClient()
+      .from("events")
+      .select(listFields)
+      .eq("publication_status", "published");
+    if (locale === "es") {
+      query = query.or("title_es.not.is.null,source_language.ilike.es,source_language.ilike.es-%");
+    }
+    return query;
+  };
 
-  if (selection.end) {
-    const endDate = selectionDate(selection.end);
-    query = query
-      .lt("starts_on", endDate)
-      .or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
-  } else {
-    query = query.or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
+  let oneTimeQuery = eventQuery()
+    .eq("recurrence_frequency", "none")
+    .or(`ends_on.gte.${startDate},starts_on.gte.${startDate}`);
+  let weeklyQuery = eventQuery()
+    .eq("recurrence_frequency", "weekly");
+
+  if (endDate) {
+    oneTimeQuery = oneTimeQuery.lt("starts_on", endDate);
+    weeklyQuery = weeklyQuery.lt("starts_on", endDate);
   }
 
-  const { data, error } = await (limit ? query.limit(limit) : query);
+  const [oneTimeResult, weeklyResult] = await Promise.all([oneTimeQuery, weeklyQuery]);
+  const error = oneTimeResult.error ?? weeklyResult.error;
   if (error) throw new Error(`Unable to load published events: ${error.message}`);
-  return ((data ?? []) as EventListRow[])
+
+  const events = [
+    ...((oneTimeResult.data ?? []) as EventListRow[]),
+    ...((weeklyResult.data ?? []) as EventListRow[]),
+  ]
     .map((row) => mapListRow(row, locale))
     .filter((event): event is PublicEventListItem => event !== null);
+  const occurrences = expandEventOccurrences(events, selection);
+  return selectUpcomingOccurrences(occurrences, limit);
 }
 
 export function getUpcomingPublishedEvents(

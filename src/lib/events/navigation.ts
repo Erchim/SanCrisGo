@@ -31,9 +31,11 @@ export function eventDetailHref(
   slug: string,
   listingHref: string,
   locale: Locale = "en",
+  occurrenceDate?: string,
 ): string {
   const returnHref = `${listingHref}#event-${slug}`;
   const query = new URLSearchParams({ from: returnHref });
+  if (occurrenceDate && isValidDate(occurrenceDate)) query.set("occurrence", occurrenceDate);
   return `${eventPath(slug, locale)}?${query.toString()}`;
 }
 

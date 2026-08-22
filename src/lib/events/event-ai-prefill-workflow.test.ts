@@ -17,6 +17,8 @@ const generated: GeneratedEventAiPrefill = {
     starts_time: "19:00",
     ends_on: null,
     ends_time: null,
+    recurrence_frequency: null,
+    recurrence_until: null,
     event_type: "music",
     venue_name: "Foro Cultural",
     address: null,

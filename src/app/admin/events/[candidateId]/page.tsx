@@ -48,6 +48,12 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
   const startsTime = event ? timeInput(event.starts_at) : prefill?.starts_time ?? "";
   const endsOn = event ? event.ends_on ?? "" : prefill?.ends_on ?? "";
   const endsTime = event ? timeInput(event.ends_at) : prefill?.ends_time ?? "";
+  const repeatsWeekly = event
+    ? event.recurrence_frequency === "weekly"
+    : prefill?.recurrence_frequency === "weekly";
+  const recurrenceUntil = event
+    ? event.recurrence_until ?? ""
+    : prefill?.recurrence_until ?? "";
   const eventType = event ? event.event_type : prefill?.event_type ?? "other";
   const sourceLanguage = event
     ? event.source_language
@@ -196,6 +202,24 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
           <label>
             End time (optional)
             <input name="ends_time" type="time" defaultValue={endsTime} />
+          </label>
+          <label className="admin-recurrence-toggle">
+            <span>Schedule</span>
+            <span>
+              <input
+                name="repeats_weekly"
+                type="checkbox"
+                value="weekly"
+                defaultChecked={repeatsWeekly}
+              />
+              Repeats weekly
+            </span>
+            <small>The weekday is taken from the start date.</small>
+          </label>
+          <label>
+            Repeats until (optional)
+            <input name="recurrence_until" type="date" defaultValue={recurrenceUntil} />
+            <small>Leave empty only when no reliable end date is known.</small>
           </label>
           <label>
             Venue

@@ -18,7 +18,12 @@ type Props = {
 };
 
 export function EventCard({ event, listingHref, headingLevel = "h2", locale = "en" }: Props) {
-  const detailHref = eventDetailHref(event.slug, listingHref, locale);
+  const detailHref = eventDetailHref(
+    event.slug,
+    listingHref,
+    locale,
+    event.recurrence_frequency === "weekly" ? event.starts_on : undefined,
+  );
   const Heading = headingLevel;
 
   return (
@@ -45,7 +50,12 @@ export function EventCard({ event, listingHref, headingLevel = "h2", locale = "e
           <span>{formatEventTimeRange(event.starts_at, event.ends_at, locale)}</span>
         </div>
         <div className="event-card-content">
-          <p className="event-type">{formatEventType(event.event_type, locale)}</p>
+          <p className="event-type">
+            {formatEventType(event.event_type, locale)}
+            {event.recurrence_frequency === "weekly" && (
+              <span className="event-recurrence-badge">{locale === "es" ? "Semanal" : "Weekly"}</span>
+            )}
+          </p>
           <Heading><Link href={detailHref}>{event.title}</Link></Heading>
           {event.summary && <p className="event-summary">{event.summary}</p>}
           {(event.venue_name || event.address) && (

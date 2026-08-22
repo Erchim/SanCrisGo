@@ -21,6 +21,8 @@ function prefill(overrides: Partial<EventAiPrefill> = {}): EventAiPrefill {
     starts_time: null,
     ends_on: null,
     ends_time: null,
+    recurrence_frequency: null,
+    recurrence_until: null,
     price_text: null,
     price_text_es: null,
     contact_phone: null,
@@ -65,5 +67,19 @@ describe("event AI prefill schema", () => {
     expect(merged.starts_on).toBe("2026-08-20");
     expect(merged.venue_name).toBe("Original venue");
     expect(needsAnotherFlyerImage(merged)).toBe(false);
+  });
+
+  it("keeps only explicit valid weekly recurrence suggestions", () => {
+    expect(normalizeEventAiPrefill(prefill({
+      recurrence_frequency: "weekly",
+      recurrence_until: "2026-09-30",
+    }))).toMatchObject({
+      recurrence_frequency: "weekly",
+      recurrence_until: "2026-09-30",
+    });
+    expect(normalizeEventAiPrefill(prefill({
+      recurrence_frequency: "none",
+      recurrence_until: "2026-09-30",
+    })).recurrence_until).toBeNull();
   });
 });

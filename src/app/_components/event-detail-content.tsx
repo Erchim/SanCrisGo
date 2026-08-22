@@ -5,12 +5,15 @@ import { notFound } from "next/navigation";
 import { eventReturnHref } from "@/lib/events/navigation";
 import {
   formatEventDate,
+  formatEventRecurrence,
+  formatRecurrenceEnd,
   formatEventTimeRange,
   formatEventType,
   safeExternalUrl,
   safePhoneHref,
 } from "@/lib/events/presentation";
 import { getPublishedEvent, type PublicEvent } from "@/lib/events/public-events";
+import { relevantEventOccurrence } from "@/lib/events/recurrence";
 import { eventLocalizedPaths, eventsPath, homePath, type Locale } from "@/lib/locales";
 import { localizedAlternates } from "@/lib/localized-metadata";
 import { getAbsoluteUrl } from "@/lib/site-url";
@@ -18,7 +21,9 @@ import { getAbsoluteUrl } from "@/lib/site-url";
 const copy = {
   en: {
     notFound: "Event not found",
-    fallbackDescription: (event: PublicEvent) => `${event.title} in San Cristóbal de las Casas on ${formatEventDate(event.starts_on)}.`,
+    fallbackDescription: (event: PublicEvent) => event.recurrence_frequency === "weekly"
+      ? `${event.title}, a weekly event in San Cristóbal de las Casas.`
+      : `${event.title} in San Cristóbal de las Casas on ${formatEventDate(event.starts_on)}.`,
     home: "Home",
     events: "Events",
     breadcrumb: "Breadcrumb",
@@ -26,6 +31,8 @@ const copy = {
     gallery: "Event images",
     image: "image",
     when: "When",
+    nextOccurrence: "Next occurrence",
+    scheduleEnded: "This weekly series has ended.",
     where: "Where",
     price: "Price",
     contact: "Contact",
@@ -36,7 +43,9 @@ const copy = {
   },
   es: {
     notFound: "Evento no encontrado",
-    fallbackDescription: (event: PublicEvent) => `${event.title} en San Cristóbal de las Casas el ${formatEventDate(event.starts_on, false, "es")}.`,
+    fallbackDescription: (event: PublicEvent) => event.recurrence_frequency === "weekly"
+      ? `${event.title}, un evento semanal en San Cristóbal de las Casas.`
+      : `${event.title} en San Cristóbal de las Casas el ${formatEventDate(event.starts_on, false, "es")}.`,
     home: "Inicio",
     events: "Eventos",
     breadcrumb: "Ruta de navegación",
@@ -44,6 +53,8 @@ const copy = {
     gallery: "Imágenes del evento",
     image: "imagen",
     when: "Cuándo",
+    nextOccurrence: "Próxima fecha",
+    scheduleEnded: "Esta serie semanal ha finalizado.",
     where: "Dónde",
     price: "Precio",
     contact: "Contacto",
@@ -92,7 +103,7 @@ export async function generateLocalizedEventMetadata(
   };
 }
 
-function eventJsonLd(event: PublicEvent, locale: Locale) {
+export function eventJsonLd(event: PublicEvent, locale: Locale) {
   const canonical = getAbsoluteUrl(eventLocalizedPaths(event.slug)[locale]);
   const organizerUrl = safeExternalUrl(event.organizer_url);
   const location = event.venue_name || event.address
@@ -156,14 +167,22 @@ export async function EventDetailContent({
 }: {
   locale: Locale;
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ from?: string | string[] }>;
+  searchParams: Promise<{ from?: string | string[]; occurrence?: string | string[] }>;
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const event = await getPublishedEvent(slug, locale);
   if (!event) notFound();
 
   const text = copy[locale];
-  const jsonLd = JSON.stringify(eventJsonLd(event, locale)).replace(/</g, "\\u003c");
+  const occurrenceDate = typeof query.occurrence === "string" ? query.occurrence : undefined;
+  const occurrence = relevantEventOccurrence(event, new Date(), occurrenceDate);
+  const displayEvent = occurrence ?? event;
+  const eventStructuredData = event.recurrence_frequency === "weekly" && !occurrence
+    ? null
+    : eventJsonLd(displayEvent, locale);
+  const jsonLd = eventStructuredData
+    ? JSON.stringify(eventStructuredData).replace(/</g, "\\u003c")
+    : null;
   const breadcrumb = eventBreadcrumbJsonLd(event, locale);
   const breadcrumbJsonLd = breadcrumb
     ? JSON.stringify(breadcrumb).replace(/</g, "\\u003c")
@@ -177,7 +196,9 @@ export async function EventDetailContent({
 
   return (
     <article className="event-article">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      )}
       {breadcrumbJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       )}
@@ -216,12 +237,23 @@ export async function EventDetailContent({
       <div className="event-details">
         <section aria-labelledby={`event-when-heading-${locale}`}>
           <h2 id={`event-when-heading-${locale}`}>{text.when}</h2>
-          <p>
-            <time dateTime={event.starts_at ?? event.starts_on}>
-              {formatEventDate(event.starts_on, false, locale)}
-            </time><br />
-            <span>{formatEventTimeRange(event.starts_at, event.ends_at, locale)}</span>
-          </p>
+          {event.recurrence_frequency === "weekly" && (
+            <p className="event-recurrence-detail">
+              <strong>{formatEventRecurrence("weekly", event.series_starts_on, locale)}</strong>
+              {event.recurrence_until && <><br />{formatRecurrenceEnd(event.recurrence_until, locale)}</>}
+            </p>
+          )}
+          {occurrence ? (
+            <p>
+              {event.recurrence_frequency === "weekly" && <><span>{text.nextOccurrence}</span><br /></>}
+              <time dateTime={occurrence.starts_at ?? occurrence.starts_on}>
+                {formatEventDate(occurrence.starts_on, false, locale)}
+              </time><br />
+              <span>{formatEventTimeRange(occurrence.starts_at, occurrence.ends_at, locale)}</span>
+            </p>
+          ) : (
+            <p>{text.scheduleEnded}</p>
+          )}
         </section>
 
         {(event.venue_name || event.address) && (

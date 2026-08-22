@@ -70,6 +70,8 @@ function instructions(): string {
     "Preserve official event, venue, and organizer names when translating them would change the name.",
     "Descriptions may paraphrase source facts but must not add promotional or factual claims.",
     "Only return URLs visibly present in the supplied source.",
+    "Set recurrence_frequency to weekly only for explicit phrases such as every Friday, cada miércoles, or todos los viernes; a weekday by itself is not recurrence.",
+    "Set recurrence_until only when a final occurrence date is explicit. Recurrence is a suggestion for human review and never a publication decision.",
   ].join(" ");
 }
 
