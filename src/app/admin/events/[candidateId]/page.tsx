@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/admin-auth";
+import { AdminNav } from "@/app/admin/_components/admin-nav";
+import { requireAdminContext } from "@/lib/admin-auth";
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
 import { EventWebsiteAdminService } from "@/lib/events/website-admin";
 import { AdminPlacesService } from "@/lib/places/admin-places";
@@ -36,11 +37,11 @@ function single(value: string | string[] | undefined): string {
 }
 
 export default async function AdminEventEditorPage({ params, searchParams }: Props) {
-  await requireAdmin();
+  const { identity: admin, client } = await requireAdminContext();
   const [{ candidateId }, query] = await Promise.all([params, searchParams]);
   const [detail, placeOptions] = await Promise.all([
     new EventWebsiteAdminService().getCandidateDetail(candidateId),
-    new AdminPlacesService().getOptions(),
+    new AdminPlacesService(client).getOptions(),
   ]);
   if (!detail) notFound();
 
@@ -87,6 +88,7 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
 
   return (
     <article className="admin-page admin-editor">
+      <AdminNav current="events" displayName={admin.displayName} />
       <Link className="back-link" href="/admin/events">← Event queue</Link>
       <header className="admin-editor-heading">
         <div>

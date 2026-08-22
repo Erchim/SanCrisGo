@@ -2,6 +2,8 @@ import {
   eventLocalizedPaths,
   eventSlugFromPathname,
   eventsPath,
+  guideSlugFromPathname,
+  guidesPath,
   homePath,
   localeFromPathname,
   staticLocalizedPaths,
@@ -15,6 +17,7 @@ export type PublicNavigationState = {
   homeHref: string;
   eventsHref: string;
   taxiHref: string;
+  guidesHref: string;
 };
 
 export function publicNavigationState(pathname: string): PublicNavigationState {
@@ -24,12 +27,13 @@ export function publicNavigationState(pathname: string): PublicNavigationState {
     homeHref: homePath(locale),
     eventsHref: eventsPath(locale),
     taxiHref: taxiPath(locale),
+    guidesHref: guidesPath(locale),
   };
 }
 
 /**
- * Returns undefined only when an English Event detail needs a server lookup to
- * determine whether a real Spanish counterpart exists.
+ * Returns undefined when an Event or Guide detail needs a server lookup to
+ * determine whether a real published counterpart exists.
  */
 export function knownLocalizedPaths(
   pathname: string,
@@ -39,8 +43,10 @@ export function knownLocalizedPaths(
 
   const locale = localeFromPathname(pathname);
   const slug = eventSlugFromPathname(pathname, locale);
-  if (!slug) return null;
-  if (locale === "es") return eventLocalizedPaths(slug);
+  if (slug) {
+    if (locale === "es") return eventLocalizedPaths(slug);
+    return undefined;
+  }
 
-  return undefined;
+  return guideSlugFromPathname(pathname, locale) ? undefined : null;
 }

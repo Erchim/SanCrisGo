@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdminContext } from "@/lib/admin-auth";
 import {
   AdminPlaceError,
   AdminPlacesService,
@@ -27,7 +27,7 @@ function message(error: unknown): string {
 }
 
 export async function savePlace(formData: FormData) {
-  const admin = await requireAdmin();
+  const { identity: admin, client } = await requireAdminContext();
   let id: string | null = null;
   let savedId = "";
   let slug = "";
@@ -41,14 +41,15 @@ export async function savePlace(formData: FormData) {
     if (venueSelection && id) {
       throw new AdminPlaceError("Venue workflow cannot overwrite an existing Place.");
     }
+    const placesService = new AdminPlacesService(client);
     const place = venueSelection
-      ? (await new AdminVenueWorkflowService().createDraftAndLink(
+      ? (await new AdminVenueWorkflowService(client, placesService).createDraftAndLink(
         admin.id,
         input,
         venueSelection.eventIds,
         venueSelection.groupKey,
       )).place
-      : await new AdminPlacesService().save(id, admin.id, input);
+      : await placesService.save(id, admin.id, input);
     savedId = place.id;
     slug = place.slug;
   } catch (error) {

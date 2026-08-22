@@ -7,7 +7,6 @@ import {
   type VenueGroup,
   type VenueSourceEvent,
 } from "@/lib/places/venue-workflow";
-import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 
 const EVENT_PAGE_SIZE = 500;
 const PUBLICATION_CHUNK_SIZE = 200;
@@ -27,7 +26,7 @@ export class AdminVenueWorkflowService {
   private readonly places: AdminPlacesService;
 
   constructor(
-    private readonly client: SupabaseClient = createServiceRoleSupabaseClient(),
+    private readonly client: SupabaseClient,
     placesService?: AdminPlacesService,
   ) {
     this.places = placesService ?? new AdminPlacesService(client);

@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  requireAdmin: vi.fn(),
+  requireAdminContext: vi.fn(),
   linkEventsToPlace: vi.fn(),
   getGroup: vi.fn(),
   redirect: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/admin-auth", () => ({ requireAdmin: mocks.requireAdmin }));
+vi.mock("@/lib/admin-auth", () => ({ requireAdminContext: mocks.requireAdminContext }));
 vi.mock("@/lib/places/admin-venue-workflow", () => ({
   AdminVenueWorkflowService: class {
     linkEventsToPlace = mocks.linkEventsToPlace;
@@ -26,7 +26,7 @@ describe("venue workflow server actions", () => {
   });
 
   it("checks staff authorization before any linking mutation", async () => {
-    mocks.requireAdmin.mockRejectedValueOnce(new Error("Unauthorized"));
+    mocks.requireAdminContext.mockRejectedValueOnce(new Error("Unauthorized"));
 
     await expect(linkVenueEvents(new FormData())).rejects.toThrow("Unauthorized");
     expect(mocks.linkEventsToPlace).not.toHaveBeenCalled();

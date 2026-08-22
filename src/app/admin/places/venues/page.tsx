@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireAdmin } from "@/lib/admin-auth";
+import { AdminNav } from "@/app/admin/_components/admin-nav";
+import { requireAdminContext } from "@/lib/admin-auth";
 import { AdminPlacesService } from "@/lib/places/admin-places";
 import { AdminVenueWorkflowService } from "@/lib/places/admin-venue-workflow";
 import { possiblePlaceMatches } from "@/lib/places/venue-workflow";
@@ -26,12 +27,14 @@ function single(value: string | string[] | undefined): string {
 }
 
 export default async function AdminVenueWorkspacePage({ searchParams }: Props) {
-  await requireAdmin();
+  const { identity: admin, client } = await requireAdminContext();
   const query = await searchParams;
+  const placesService = new AdminPlacesService(client);
+  const venueService = new AdminVenueWorkflowService(client, placesService);
   const [workspace, placeOptions, matchOptions] = await Promise.all([
-    new AdminVenueWorkflowService().getWorkspace(),
-    new AdminPlacesService().getOptions(),
-    new AdminPlacesService().getMatchOptions(),
+    venueService.getWorkspace(),
+    placesService.getOptions(),
+    placesService.getMatchOptions(),
   ]);
   const focus = single(query.focus);
   const groups = focus
@@ -45,6 +48,7 @@ export default async function AdminVenueWorkspacePage({ searchParams }: Props) {
 
   return (
     <section className="admin-page admin-venue-workspace">
+      <AdminNav current="venues" displayName={admin.displayName} />
       <Link className="back-link" href="/admin/places">← Places</Link>
       <header className="admin-heading">
         <div>

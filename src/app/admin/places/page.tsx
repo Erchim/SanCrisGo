@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { signOut } from "@/app/admin/login/actions";
-import { requireAdmin } from "@/lib/admin-auth";
+import { AdminNav } from "@/app/admin/_components/admin-nav";
+import { requireAdminContext } from "@/lib/admin-auth";
 import { AdminPlacesService } from "@/lib/places/admin-places";
 
 export const metadata: Metadata = {
@@ -26,9 +26,9 @@ function activeFilter(value: string | string[] | undefined): PlaceFilter {
 }
 
 export default async function AdminPlacesPage({ searchParams }: Props) {
-  const admin = await requireAdmin();
+  const { identity: admin, client } = await requireAdminContext();
   const [places, params] = await Promise.all([
-    new AdminPlacesService().getPlaces(),
+    new AdminPlacesService(client).getPlaces(),
     searchParams,
   ]);
   const filter = activeFilter(params.status);
@@ -42,6 +42,7 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
 
   return (
     <section className="admin-page admin-queue">
+      <AdminNav current="places" displayName={admin.displayName} />
       <header className="admin-heading">
         <div>
           <p className="eyebrow">Structured local information</p>
@@ -49,14 +50,8 @@ export default async function AdminPlacesPage({ searchParams }: Props) {
           <p className="lede">Maintain verified locations used by public pages and Events.</p>
         </div>
         <div className="admin-heading-actions">
-          <Link className="admin-secondary-link" href="/admin/events">Event queue</Link>
           <Link className="admin-secondary-link" href="/admin/places/venues">Unlinked venues</Link>
           <Link className="primary-link" href="/admin/places/new">New Place</Link>
-          <form action={signOut}>
-            <button className="admin-secondary-button" type="submit">
-              Sign out{admin.displayName ? ` · ${admin.displayName}` : ""}
-            </button>
-          </form>
         </div>
       </header>
 

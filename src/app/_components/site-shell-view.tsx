@@ -19,7 +19,7 @@ export function SiteHeaderView({
           <div className="site-links">
             <Link href={navigation.eventsHref}>{spanish ? "Eventos" : "Events"}</Link>
             <Link href={navigation.taxiHref}>Taxi</Link>
-            {!spanish && <Link href="/guides">Guides</Link>}
+            <Link href={navigation.guidesHref}>{spanish ? "Guías" : "Guides"}</Link>
           </div>
           {localizedPaths && (
             <div
@@ -59,7 +59,7 @@ export function SiteFooterView({ navigation }: { navigation: PublicNavigationSta
         <nav aria-label={spanish ? "Navegación del pie de página" : "Footer navigation"}>
           <Link href={navigation.eventsHref}>{spanish ? "Eventos" : "Events"}</Link>
           <Link href={navigation.taxiHref}>Taxi</Link>
-          {!spanish && <Link href="/guides">Guides</Link>}
+          <Link href={navigation.guidesHref}>{spanish ? "Guías" : "Guides"}</Link>
           {!spanish && <Link href="/image-credits">Image credits</Link>}
         </nav>
       </div>

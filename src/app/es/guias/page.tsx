@@ -5,23 +5,23 @@ import { localizedAlternates } from "@/lib/localized-metadata";
 import { getAbsoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
-const paths = staticLocalizedPaths("/guides") as { en: string; es: string };
-const canonical = getAbsoluteUrl(paths.en);
-const description = "Practical guides to San Cristóbal de las Casas from SanCrisGo.";
+const paths = staticLocalizedPaths("/es/guias") as { en: string; es: string };
+const canonical = getAbsoluteUrl(paths.es);
+const description = "Guías prácticas para viajar y moverte por San Cristóbal de las Casas.";
 
 export const metadata: Metadata = {
-  title: "Guides",
+  title: "Guías",
   description,
-  alternates: localizedAlternates("en", paths),
+  alternates: localizedAlternates("es", paths),
   openGraph: {
-    title: "Guides",
+    title: "Guías",
     description,
-    locale: "en_US",
-    alternateLocale: ["es_MX"],
+    locale: "es_MX",
+    alternateLocale: ["en_US"],
     ...(canonical && { url: canonical }),
   },
 };
 
-export default function GuidesPage() {
-  return <GuidesIndexContent locale="en" />;
+export default function SpanishGuidesPage() {
+  return <GuidesIndexContent locale="es" />;
 }

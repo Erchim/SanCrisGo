@@ -171,6 +171,17 @@ p, li { line-height: 1.65; }
 .event-organizer { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid #dedbd1; color: #65716c; }
 
 .admin-page { padding-bottom: 3rem; }
+.admin-global-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.admin-global-nav nav { display: flex; overflow-x: auto; gap: 0.35rem; padding-bottom: 0.2rem; }
+.admin-global-nav nav a { flex: none; padding: 0.55rem 0.7rem; border-radius: 0.4rem; color: #52645c; font-size: 0.86rem; font-weight: 700; text-decoration: none; }
+.admin-global-nav nav a:hover, .admin-global-nav nav a[aria-current="page"] { background: #e7efe9; color: var(--forest); }
+.admin-global-nav form { flex: none; }
+.admin-global-nav button { min-height: 2.5rem; padding: 0.55rem 0.75rem; border-radius: 0.4rem; font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.admin-destination-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.admin-destination-list a { display: grid; min-height: 100%; gap: 0.6rem; padding: 1.2rem; border: 1px solid var(--line); border-radius: 0.75rem; background: #fff; color: #35443d; text-decoration: none; }
+.admin-destination-list a:hover { border-color: rgba(23, 74, 50, 0.55); }
+.admin-destination-list strong { color: var(--forest); font-family: var(--display-font); font-size: 1.65rem; }
+.admin-destination-list a > span:last-child { margin-top: auto; color: var(--terracotta); font-size: 1.15rem; font-weight: 750; }
 .admin-heading, .admin-editor-heading { display: flex; align-items: start; justify-content: space-between; gap: 2rem; margin-bottom: 2rem; }
 .admin-heading h1, .admin-editor-heading h1, .admin-login h1 { font-size: clamp(2rem, 7vw, 3.4rem); }
 .admin-heading .lede { max-width: 36rem; }
@@ -348,6 +359,9 @@ p, li { line-height: 1.65; }
   .event-gallery { grid-template-columns: 1fr; }
   .event-gallery figure:first-child:nth-last-child(odd) { grid-column: auto; }
   .admin-heading, .admin-editor-heading { flex-direction: column; }
+  .admin-global-nav { align-items: stretch; flex-direction: column; }
+  .admin-global-nav form, .admin-global-nav button { width: 100%; }
+  .admin-destination-list { grid-template-columns: 1fr; }
   .admin-heading-actions { width: 100%; justify-content: flex-start; }
   .admin-place-list > li { align-items: start; flex-direction: column; }
   .admin-place-status { justify-items: start; }

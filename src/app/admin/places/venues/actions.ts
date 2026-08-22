@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdminContext } from "@/lib/admin-auth";
 import { AdminPlaceError } from "@/lib/places/admin-places";
 import { AdminVenueWorkflowService } from "@/lib/places/admin-venue-workflow";
 import { parseVenueSelection, selectedVenueEvents } from "@/lib/places/venue-workflow";
@@ -21,12 +21,12 @@ function errorMessage(error: unknown): string {
 }
 
 export async function linkVenueEvents(formData: FormData) {
-  await requireAdmin();
+  const { client } = await requireAdminContext();
   let failure = "";
   let linkedCount = 0;
   try {
     const selection = parseVenueSelection(formData);
-    linkedCount = await new AdminVenueWorkflowService().linkEventsToPlace(
+    linkedCount = await new AdminVenueWorkflowService(client).linkEventsToPlace(
       selectedPlaceId(formData),
       selection.eventIds,
       selection.groupKey,
@@ -44,12 +44,12 @@ export async function linkVenueEvents(formData: FormData) {
 }
 
 export async function reviewVenueAsPlace(formData: FormData) {
-  await requireAdmin();
+  const { client } = await requireAdminContext();
   let target = "/admin/places/venues";
   let failure = "";
   try {
     const selection = parseVenueSelection(formData);
-    const group = await new AdminVenueWorkflowService().getGroup(selection.groupKey);
+    const group = await new AdminVenueWorkflowService(client).getGroup(selection.groupKey);
     if (!group || selectedVenueEvents(group, selection.eventIds).length !== selection.eventIds.length) {
       throw new AdminPlaceError("The venue group changed. Reload it before creating a Place.");
     }

@@ -29,6 +29,14 @@ export function taxiPath(locale: Locale): string {
   return locale === "es" ? "/es/taxi" : "/taxi";
 }
 
+export function guidesPath(locale: Locale): string {
+  return locale === "es" ? "/es/guias" : "/guides";
+}
+
+export function guidePath(slug: string, locale: Locale): string {
+  return `${guidesPath(locale)}/${encodeURIComponent(slug)}`;
+}
+
 export function staticLocalizedPaths(pathname: string): LocalizedPaths | null {
   if (pathname === "/" || pathname === "/es") {
     return { en: "/", es: "/es" };
@@ -38,6 +46,9 @@ export function staticLocalizedPaths(pathname: string): LocalizedPaths | null {
   }
   if (pathname === "/taxi" || pathname === "/es/taxi") {
     return { en: "/taxi", es: "/es/taxi" };
+  }
+  if (pathname === "/guides" || pathname === "/es/guias") {
+    return { en: "/guides", es: "/es/guias" };
   }
   return null;
 }
@@ -49,6 +60,16 @@ export function eventLocalizedPaths(slug: string): LocalizedPaths {
   };
 }
 
+export function guideLocalizedPaths(
+  englishSlug: string,
+  spanishSlug: string,
+): LocalizedPaths {
+  return {
+    en: guidePath(englishSlug, "en"),
+    es: guidePath(spanishSlug, "es"),
+  };
+}
+
 export function eventSitemapPaths(slug: string, hasSpanish: boolean): string[] {
   const paths = eventLocalizedPaths(slug);
   return hasSpanish ? [paths.en, paths.es] : [paths.en];
@@ -56,6 +77,20 @@ export function eventSitemapPaths(slug: string, hasSpanish: boolean): string[] {
 
 export function eventSlugFromPathname(pathname: string, locale: Locale): string | null {
   const prefix = locale === "es" ? "/es/eventos/" : "/events/";
+  if (!pathname.startsWith(prefix)) return null;
+
+  const slug = pathname.slice(prefix.length);
+  if (!slug || slug.includes("/")) return null;
+
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+export function guideSlugFromPathname(pathname: string, locale: Locale): string | null {
+  const prefix = `${guidesPath(locale)}/`;
   if (!pathname.startsWith(prefix)) return null;
 
   const slug = pathname.slice(prefix.length);
