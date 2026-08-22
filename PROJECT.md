@@ -1,35 +1,25 @@
 # SanCrisGo project context
 
-## Purpose and users
+## Product
 
-SanCrisGo is intended to become the local digital hub for San Cristobal de las Casas, Chiapas, Mexico. It should serve visitors, temporary residents and expats, locals, businesses, event organizers, and service providers by turning trustworthy local information into a useful next action.
+SanCrisGo is a live local city portal for San Cristóbal de las Casas, Chiapas. It serves visitors and residents with trustworthy, interconnected local information and useful next actions. Organic search is the primary acquisition channel, so public pages require stable URLs, complete server-rendered HTML, clear search intent, and strong internal linking.
 
-The acquisition priority is organic Google Search. A visitor should move from a search query to a complete, useful SanCrisGo page, receive a clear answer with local context, and then find an appropriate action or related resource. Public content must therefore support stable URLs and complete indexable HTML; SEO must never depend on a browser fetching the useful content after loading a blank shell.
+The current public product includes Events, English Guides, and Taxi. Its long-term information model connects Places, Events, and Guides, with user-facing discovery layers such as Things to do, Food, Stay, and Learn, plus contextual utilities/actions such as Taxi. A visible discovery section does not automatically require a separate database entity.
 
-## MVP
+## Production architecture
 
-The product foundation consists of a PostgreSQL schema on Supabase and an initial public frontend. Its core entities are:
+- Next.js, TypeScript, and the App Router on Vercel.
+- Supabase PostgreSQL, Auth, row-level security, and Storage-backed media.
+- Server Components by default; important public content remains server-rendered and SEO-first.
+- PostgreSQL migrations are the schema source of truth. Applied migrations are never rewritten.
+- Essential editorial and SEO data uses typed columns; JSONB is reserved for genuinely variable extensions.
 
-- profiles linked to Supabase Auth;
-- places, a broad listing model covering attractions, hospitality, venues, operators, transport, and useful services;
-- events, for freshness-sensitive local activities;
-- guides, the principal initial search-acquisition and editorial layer;
-- reusable tags, explicit place-to-place relations, and guide-to-place relations.
+## Languages and public URLs
 
-Content uses strict pre-moderation. Staff and owners manage places and guides and moderate events. Active users may submit pending events but cannot publish them. English is the initial language; explicit language fields leave room for later translation tables.
+English is the default language and remains unprefixed. Spanish uses the `/es` tree. The bilingual public foundation currently covers Home, Events, Event details, and Taxi. Event presentation uses existing structured English and Spanish fields, with original-source fallback only when it is linguistically safe.
 
-## Data and architecture principles
+Guides remain English-first at `/guides` until real translated Guide content exists; the site must not expose empty Spanish Guide routes or false language counterparts. Future public entities and discovery layers should follow the same stable, server-rendered URL and locale conventions.
 
-- PostgreSQL migrations in `supabase/migrations` are the source of truth. Future capabilities extend the schema with new migrations rather than replacing it.
-- Supabase is the backend: Auth supplies identities and Storage will later hold files referenced by paths. There is no custom backend server in this phase.
-- Essential editorial, discovery, verification, and SEO data stays in typed columns. JSONB is limited to variable opening schedules and non-critical extension metadata.
-- UUID primary keys, `timestamptz`, explicit foreign keys, modest indexes, validation constraints, and row-level security form the database baseline.
-- Flexible text categories are preferred over premature enums. Translation and media-gallery systems should be introduced only when requirements justify dedicated models.
-- Frontend foundation work has started with Next.js, TypeScript, and the App Router. Public content is server-first: important public routes must return useful, indexable HTML.
-- Server Components are the default. Client Components should be introduced only when a real interactive requirement needs browser-side JavaScript.
+## Content and staged work
 
-## Long-term direction and deferred work
-
-The platform may eventually connect practical information, businesses, events, transport, day trips, community, concierge experiences, promotions, and contact or booking flows. This migration does **not** authorize building all of those features.
-
-Additional frontend verticals, comments, forums, ratings, bookings, payments, business claims, advertising, AI/voice assistants, embeddings, automated recommendations, notifications, automated translation, complex media management, and production deployment are deferred until explicitly scoped. No fabricated local records should be used to fill the product.
+Content is pre-moderated. Users cannot self-publish, and website publication remains independent from external publication workflows. Places and the Food, Stay, Learn, and Things to do discovery layers are staged. Rentals, Tours as a dedicated catalog, recurring-event expansion, community features, profiles, comments, ratings, bookings, payments, business claims, advertising, and automated translation remain deferred until explicitly scoped and justified by real product needs.

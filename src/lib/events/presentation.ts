@@ -1,52 +1,50 @@
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
+import type { Locale } from "@/lib/locales";
 
-const dateFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: EVENT_TIME_ZONE,
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+type FormatterSet = {
+  date: Intl.DateTimeFormat;
+  dateOnly: Intl.DateTimeFormat;
+  shortDate: Intl.DateTimeFormat;
+  shortDateOnly: Intl.DateTimeFormat;
+  cardDate: Intl.DateTimeFormat;
+  cardDateOnly: Intl.DateTimeFormat;
+  time: Intl.DateTimeFormat;
+};
 
-const dateOnlyFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: "UTC",
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+function formatterSet(language: string): FormatterSet {
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  };
+  const shortOptions: Intl.DateTimeFormatOptions = {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  };
+  const cardOptions: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
 
-const shortDateFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: EVENT_TIME_ZONE,
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-});
+  return {
+    date: new Intl.DateTimeFormat(language, { ...dateOptions, timeZone: EVENT_TIME_ZONE }),
+    dateOnly: new Intl.DateTimeFormat(language, { ...dateOptions, timeZone: "UTC" }),
+    shortDate: new Intl.DateTimeFormat(language, { ...shortOptions, timeZone: EVENT_TIME_ZONE }),
+    shortDateOnly: new Intl.DateTimeFormat(language, { ...shortOptions, timeZone: "UTC" }),
+    cardDate: new Intl.DateTimeFormat(language, { ...cardOptions, timeZone: EVENT_TIME_ZONE }),
+    cardDateOnly: new Intl.DateTimeFormat(language, { ...cardOptions, timeZone: "UTC" }),
+    time: new Intl.DateTimeFormat(language, {
+      timeZone: EVENT_TIME_ZONE,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }),
+  };
+}
 
-const shortDateOnlyFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: "UTC",
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-});
-
-const cardDateFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: EVENT_TIME_ZONE,
-  month: "short",
-  day: "numeric",
-});
-
-const cardDateOnlyFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: "UTC",
-  month: "short",
-  day: "numeric",
-});
-
-const timeFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: EVENT_TIME_ZONE,
-  hour: "numeric",
-  minute: "2-digit",
-});
+const formatters: Record<Locale, FormatterSet> = {
+  en: formatterSet("en"),
+  es: formatterSet("es-MX"),
+};
 
 const localDayFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: EVENT_TIME_ZONE,
@@ -55,40 +53,67 @@ const localDayFormatter = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
-export function formatEventType(eventType: string): string {
+const spanishEventTypes: Record<string, string> = {
+  art: "Arte",
+  community: "Comunidad",
+  dance: "Danza",
+  film: "Cine",
+  food: "Gastronomía",
+  market: "Mercado",
+  music: "Música",
+  nightlife: "Vida nocturna",
+  other: "Otro",
+  theater: "Teatro",
+  wellness: "Bienestar",
+  workshop: "Taller",
+};
+
+export function formatEventType(eventType: string, locale: Locale = "en"): string {
+  if (locale === "es" && spanishEventTypes[eventType]) return spanishEventTypes[eventType];
+
   return eventType
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export function formatEventDate(startsOn: string, short = false): string {
+export function formatEventDate(
+  startsOn: string,
+  short = false,
+  locale: Locale = "en",
+): string {
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(startsOn);
+  const set = formatters[locale];
   const formatter = isDateOnly
-    ? (short ? shortDateOnlyFormatter : dateOnlyFormatter)
-    : (short ? shortDateFormatter : dateFormatter);
+    ? (short ? set.shortDateOnly : set.dateOnly)
+    : (short ? set.shortDate : set.date);
   const value = isDateOnly ? `${startsOn}T12:00:00.000Z` : startsOn;
   return formatter.format(new Date(value));
 }
 
-export function formatEventCardDate(startsOn: string): string {
+export function formatEventCardDate(startsOn: string, locale: Locale = "en"): string {
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(startsOn);
-  const formatter = isDateOnly ? cardDateOnlyFormatter : cardDateFormatter;
+  const formatter = isDateOnly ? formatters[locale].cardDateOnly : formatters[locale].cardDate;
   const value = isDateOnly ? `${startsOn}T12:00:00.000Z` : startsOn;
-  return formatter.format(new Date(value)).toUpperCase();
+  return formatter.format(new Date(value)).toLocaleUpperCase(locale === "es" ? "es-MX" : "en");
 }
 
-export function formatEventTimeRange(startsAt: string | null, endsAt: string | null): string {
-  if (!startsAt) return "Time to be confirmed";
+export function formatEventTimeRange(
+  startsAt: string | null,
+  endsAt: string | null,
+  locale: Locale = "en",
+): string {
+  if (!startsAt) return locale === "es" ? "Hora por confirmar" : "Time to be confirmed";
+
   const start = new Date(startsAt);
-  const startTime = timeFormatter.format(start);
+  const startTime = formatters[locale].time.format(start);
   if (!endsAt) return startTime;
 
   const end = new Date(endsAt);
   if (localDayFormatter.format(start) === localDayFormatter.format(end)) {
-    return `${startTime}–${timeFormatter.format(end)}`;
+    return `${startTime}–${formatters[locale].time.format(end)}`;
   }
 
-  return `${startTime} – ${dateFormatter.format(end)}, ${timeFormatter.format(end)}`;
+  return `${startTime} – ${formatters[locale].date.format(end)}, ${formatters[locale].time.format(end)}`;
 }
 
 export function safeExternalUrl(value: string | null): string | null {

@@ -64,6 +64,16 @@ describe("resolveEventDateSelection", () => {
     expect(resolveEventDateSelection(undefined, "2026-02-30", tuesdayEveningInChiapas).filter).toBe("upcoming");
   });
 
+  it("localizes labels without changing the date window", () => {
+    expect(resolveEventDateSelection("tomorrow", undefined, tuesdayEveningInChiapas, "es"))
+      .toEqual({
+        filter: "tomorrow",
+        label: "Mañana",
+        start: "2026-08-19T06:00:00.000Z",
+        end: "2026-08-20T06:00:00.000Z",
+      });
+  });
+
   it("converts optional event form time in the San Cristobal time zone", () => {
     expect(localEventDateTimeToISOString("2026-08-18", "18:30"))
       .toBe("2026-08-19T00:30:00.000Z");

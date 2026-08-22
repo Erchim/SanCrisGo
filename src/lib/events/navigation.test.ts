@@ -28,6 +28,23 @@ describe("event navigation", () => {
       .toBe("/events/live-music?from=%2Fevents%3Fview%3Dweekend%23event-live-music");
   });
 
+  it("uses the Spanish route tree without changing filter semantics", () => {
+    const selection = {
+      filter: "weekend" as const,
+      label: "Este fin de semana",
+      start: "2026-08-22T06:00:00.000Z",
+      end: "2026-08-24T06:00:00.000Z",
+    };
+    const listing = eventListingHref(selection, "es");
+
+    expect(listing).toBe("/es/eventos?view=weekend");
+    expect(eventDetailHref("musica", listing, "es"))
+      .toBe("/es/eventos/musica?from=%2Fes%2Feventos%3Fview%3Dweekend%23event-musica");
+    expect(eventReturnHref("/es/eventos?view=weekend#event-musica", "es"))
+      .toBe("/es/eventos?view=weekend#event-musica");
+    expect(eventReturnHref("/events?view=weekend", "es")).toBe("/es/eventos");
+  });
+
   it("accepts only safe event-list return URLs", () => {
     expect(eventReturnHref("/events?view=tomorrow#event-live-music"))
       .toBe("/events?view=tomorrow#event-live-music");

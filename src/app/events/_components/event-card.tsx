@@ -8,15 +8,17 @@ import {
   formatEventTimeRange,
   formatEventType,
 } from "@/lib/events/presentation";
+import type { Locale } from "@/lib/locales";
 
 type Props = {
   event: PublicEventListItem;
   listingHref: string;
   headingLevel?: "h2" | "h3";
+  locale?: Locale;
 };
 
-export function EventCard({ event, listingHref, headingLevel = "h2" }: Props) {
-  const detailHref = eventDetailHref(event.slug, listingHref);
+export function EventCard({ event, listingHref, headingLevel = "h2", locale = "en" }: Props) {
+  const detailHref = eventDetailHref(event.slug, listingHref, locale);
   const Heading = headingLevel;
 
   return (
@@ -35,15 +37,15 @@ export function EventCard({ event, listingHref, headingLevel = "h2" }: Props) {
         )}
         <div className="event-card-date">
           <time
-            aria-label={formatEventDate(event.starts_on, true)}
+            aria-label={formatEventDate(event.starts_on, true, locale)}
             dateTime={event.starts_at ?? event.starts_on}
           >
-            {formatEventCardDate(event.starts_on)}
+            {formatEventCardDate(event.starts_on, locale)}
           </time>
-          <span>{formatEventTimeRange(event.starts_at, event.ends_at)}</span>
+          <span>{formatEventTimeRange(event.starts_at, event.ends_at, locale)}</span>
         </div>
         <div className="event-card-content">
-          <p className="event-type">{formatEventType(event.event_type)}</p>
+          <p className="event-type">{formatEventType(event.event_type, locale)}</p>
           <Heading><Link href={detailHref}>{event.title}</Link></Heading>
           {event.summary && <p className="event-summary">{event.summary}</p>}
           {(event.venue_name || event.address) && (

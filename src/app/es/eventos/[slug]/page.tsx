@@ -13,9 +13,9 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return generateLocalizedEventMetadata(slug, "en");
+  return generateLocalizedEventMetadata(slug, "es");
 }
 
-export default function EventPage({ params, searchParams }: Props) {
-  return <EventDetailContent locale="en" params={params} searchParams={searchParams} />;
+export default function SpanishEventPage({ params, searchParams }: Props) {
+  return <EventDetailContent locale="es" params={params} searchParams={searchParams} />;
 }

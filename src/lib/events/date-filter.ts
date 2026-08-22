@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/locales";
+
 export const EVENT_TIME_ZONE = "America/Mexico_City";
 
 export type EventDateFilter = "today" | "tomorrow" | "weekend" | "upcoming" | "date";
@@ -34,12 +36,35 @@ const zonedDateTimeFormatter = new Intl.DateTimeFormat("en-CA", {
   second: "2-digit",
 });
 
-const filterLabelFormatter = new Intl.DateTimeFormat("en", {
-  timeZone: EVENT_TIME_ZONE,
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-});
+const filterLabelFormatters: Record<Locale, Intl.DateTimeFormat> = {
+  en: new Intl.DateTimeFormat("en", {
+    timeZone: EVENT_TIME_ZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }),
+  es: new Intl.DateTimeFormat("es-MX", {
+    timeZone: EVENT_TIME_ZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }),
+};
+
+const selectionLabels: Record<Locale, Record<"today" | "tomorrow" | "weekend" | "upcoming", string>> = {
+  en: {
+    today: "Today",
+    tomorrow: "Tomorrow",
+    weekend: "This weekend",
+    upcoming: "All upcoming events",
+  },
+  es: {
+    today: "Hoy",
+    tomorrow: "Mañana",
+    weekend: "Este fin de semana",
+    upcoming: "Todos los próximos eventos",
+  },
+};
 
 function numericParts(
   formatter: Intl.DateTimeFormat,
@@ -159,21 +184,22 @@ export function resolveEventDateSelection(
   view: string | undefined,
   dateInput: string | undefined,
   now = new Date(),
+  locale: Locale = "en",
 ): EventDateSelection {
   const customDate = localDateFromInput(dateInput);
   if (customDate) {
     const start = localMidnightAsUtc(customDate);
-    return daySelection("date", customDate, filterLabelFormatter.format(start));
+    return daySelection("date", customDate, filterLabelFormatters[locale].format(start));
   }
 
   const today = localDateAt(now);
 
   if (view === "today") {
-    return daySelection("today", today, "Today");
+    return daySelection("today", today, selectionLabels[locale].today);
   }
 
   if (view === "tomorrow") {
-    return daySelection("tomorrow", addLocalDays(today, 1), "Tomorrow");
+    return daySelection("tomorrow", addLocalDays(today, 1), selectionLabels[locale].tomorrow);
   }
 
   if (view === "weekend") {
@@ -184,7 +210,7 @@ export function resolveEventDateSelection(
 
     return {
       filter: "weekend",
-      label: "This weekend",
+      label: selectionLabels[locale].weekend,
       start: localMidnightAsUtc(startDate).toISOString(),
       end: localMidnightAsUtc(addLocalDays(startDate, daysInWindow)).toISOString(),
     };
@@ -192,7 +218,7 @@ export function resolveEventDateSelection(
 
   return {
     filter: "upcoming",
-    label: "All upcoming events",
+    label: selectionLabels[locale].upcoming,
     start: now.toISOString(),
   };
 }
