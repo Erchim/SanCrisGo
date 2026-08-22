@@ -3,6 +3,7 @@ import { eventPath, eventsPath, type Locale } from "@/lib/locales";
 
 const EVENT_LIST_ORIGIN = "https://events.sancrisgo.local";
 const allowedViews = new Set(["today", "tomorrow", "weekend"]);
+const PLACE_PATH = /^\/places\/[a-z0-9-]+$/i;
 
 function isValidDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -50,7 +51,12 @@ export function eventReturnHref(value: string | undefined, locale: Locale = "en"
     return pathname;
   }
 
-  if (url.origin !== EVENT_LIST_ORIGIN || url.pathname !== pathname) return pathname;
+  if (url.origin !== EVENT_LIST_ORIGIN) return pathname;
+
+  if (locale === "en" && PLACE_PATH.test(url.pathname) && !url.search) {
+    return `${url.pathname}${safeEventAnchor(url.hash)}`;
+  }
+  if (url.pathname !== pathname) return pathname;
 
   const anchor = safeEventAnchor(url.hash);
   const entries = [...url.searchParams.entries()];

@@ -28,9 +28,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang={locale}>
       <body>
-        <SiteHeader locale={locale} pathname={pathname} />
+        <SiteHeader pathname={pathname} />
         <main>{children}</main>
-        <SiteFooter locale={locale} />
+        <SiteFooter pathname={pathname} />
       </body>
     </html>
   );

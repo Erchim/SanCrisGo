@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { getPublishedEventsForSitemap } from "@/lib/events/public-events";
 import { getPublishedGuides } from "@/lib/guides";
 import { eventSitemapPaths } from "@/lib/locales";
+import { getPublishedPlaces } from "@/lib/places/public-places";
+import { placeSitemapPaths } from "@/lib/places/presentation";
 import { getAbsoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +26,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     || !guidesUrl
   ) return [];
 
-  const [events, guides] = await Promise.all([
+  const [events, guides, places] = await Promise.all([
     getPublishedEventsForSitemap(),
     getPublishedGuides(),
+    getPublishedPlaces(),
   ]);
 
   return [
@@ -72,6 +75,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...guides.map((guide) => ({
       url: getAbsoluteUrl(`/guides/${guide.slug}`) as string,
       lastModified: guide.updated_at,
+    })),
+    ...(places.length > 0 ? [{ url: getAbsoluteUrl("/places") as string }] : []),
+    ...placeSitemapPaths(places).map((path, index) => ({
+      url: getAbsoluteUrl(path) as string,
+      lastModified: places[index].updated_at,
     })),
   ];
 }

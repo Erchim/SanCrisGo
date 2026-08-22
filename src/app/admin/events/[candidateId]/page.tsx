@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin-auth";
 import { EVENT_TIME_ZONE } from "@/lib/events/date-filter";
 import { EventWebsiteAdminService } from "@/lib/events/website-admin";
+import { AdminPlacesService } from "@/lib/places/admin-places";
 import { analyzeWebsiteCandidate, publishWebsiteEvent, saveEventDraft } from "../actions";
 import { AiAnalyzeForm } from "./ai-analyze-form";
 
@@ -37,7 +38,10 @@ function single(value: string | string[] | undefined): string {
 export default async function AdminEventEditorPage({ params, searchParams }: Props) {
   await requireAdmin();
   const [{ candidateId }, query] = await Promise.all([params, searchParams]);
-  const detail = await new EventWebsiteAdminService().getCandidateDetail(candidateId);
+  const [detail, placeOptions] = await Promise.all([
+    new EventWebsiteAdminService().getCandidateDetail(candidateId),
+    new AdminPlacesService().getOptions(),
+  ]);
   if (!detail) notFound();
 
   const event = detail.event;
@@ -220,6 +224,18 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
             Repeats until (optional)
             <input name="recurrence_until" type="date" defaultValue={recurrenceUntil} />
             <small>Leave empty only when no reliable end date is known.</small>
+          </label>
+          <label>
+            Structured Place (optional)
+            <select name="place_id" defaultValue={event?.place_id ?? ""}>
+              <option value="">No structured Place</option>
+              {placeOptions.map((place) => (
+                <option key={place.id} value={place.id}>
+                  {place.name} · {place.place_type} · {place.publication_status}
+                </option>
+              ))}
+            </select>
+            <small>Venue and address remain available as public fallback text.</small>
           </label>
           <label>
             Venue

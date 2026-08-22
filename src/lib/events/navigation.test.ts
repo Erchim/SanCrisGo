@@ -62,4 +62,13 @@ describe("event navigation", () => {
     expect(eventReturnHref("/events?view=tomorrow&extra=1"))
       .toBe("/events");
   });
+
+  it("returns from a Place event card to the same Place card position", () => {
+    expect(eventReturnHref("/places/city-museum#event-weekly-music"))
+      .toBe("/places/city-museum#event-weekly-music");
+    expect(eventReturnHref("/places/city-museum?unsafe=1#event-weekly-music"))
+      .toBe("/events");
+    expect(eventReturnHref("/places/city-museum#event-weekly-music", "es"))
+      .toBe("/es/eventos");
+  });
 });

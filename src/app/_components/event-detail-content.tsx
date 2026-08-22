@@ -17,6 +17,7 @@ import { relevantEventOccurrence } from "@/lib/events/recurrence";
 import { eventLocalizedPaths, eventsPath, homePath, type Locale } from "@/lib/locales";
 import { localizedAlternates } from "@/lib/localized-metadata";
 import { getAbsoluteUrl } from "@/lib/site-url";
+import { linkedPlacePath } from "@/lib/places/presentation";
 
 const copy = {
   en: {
@@ -40,6 +41,7 @@ const copy = {
     tickets: "Tickets or registration ↗",
     source: "View original event source ↗",
     organizedBy: "Organized by",
+    englishPlace: "Place page in English",
   },
   es: {
     notFound: "Evento no encontrado",
@@ -62,6 +64,7 @@ const copy = {
     tickets: "Boletos o registro ↗",
     source: "Ver la fuente original del evento ↗",
     organizedBy: "Organiza",
+    englishPlace: "Página del lugar en inglés",
   },
 } as const;
 
@@ -106,10 +109,11 @@ export async function generateLocalizedEventMetadata(
 export function eventJsonLd(event: PublicEvent, locale: Locale) {
   const canonical = getAbsoluteUrl(eventLocalizedPaths(event.slug)[locale]);
   const organizerUrl = safeExternalUrl(event.organizer_url);
-  const location = event.venue_name || event.address
+  const locationName = event.venue_name ?? event.place?.name;
+  const location = locationName || event.address
     ? {
         "@type": "Place",
-        ...(event.venue_name && { name: event.venue_name }),
+        ...(locationName && { name: locationName }),
         address: {
           "@type": "PostalAddress",
           ...(event.address && { streetAddress: event.address }),
@@ -193,6 +197,8 @@ export async function EventDetailContent({
   const phoneHref = safePhoneHref(event.contact_phone);
   const backHref = eventReturnHref(typeof query.from === "string" ? query.from : undefined, locale);
   const listingHref = eventsPath(locale);
+  const placeHref = linkedPlacePath(event.place);
+  const venueName = event.venue_name ?? event.place?.name;
 
   return (
     <article className="event-article">
@@ -256,10 +262,15 @@ export async function EventDetailContent({
           )}
         </section>
 
-        {(event.venue_name || event.address) && (
+        {(venueName || event.address) && (
           <section aria-labelledby={`event-where-heading-${locale}`}>
             <h2 id={`event-where-heading-${locale}`}>{text.where}</h2>
-            {event.venue_name && <p><strong>{event.venue_name}</strong></p>}
+            {venueName && (
+              <p>
+                <strong>{placeHref ? <Link href={placeHref}>{venueName}</Link> : venueName}</strong>
+                {placeHref && locale === "es" && <small className="place-language-note">{text.englishPlace}</small>}
+              </p>
+            )}
             {event.address && <p>{event.address}</p>}
           </section>
         )}
