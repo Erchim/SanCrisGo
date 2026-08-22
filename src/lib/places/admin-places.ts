@@ -48,6 +48,8 @@ export type AdminPlaceRow = {
 };
 
 export type PlaceOption = Pick<AdminPlaceRow, "id" | "name" | "place_type" | "publication_status">;
+export type AdminPlaceListItem = AdminPlaceRow & { linkedEventCount: number };
+export type PlaceMatchOption = PlaceOption & Pick<AdminPlaceRow, "address">;
 
 export type PlaceInput = {
   name: string;
@@ -220,17 +222,24 @@ export function placePublicationFields(
 }
 
 const adminPlaceFields = "id,name,slug,place_type,summary,description,address,neighborhood,latitude,longitude,google_maps_url,phone,whatsapp,website_url,instagram_url,seo_title,seo_description,source_url,last_verified_at,source_language,publication_status,published_at,updated_at";
+const LINK_COUNT_PAGE_SIZE = 500;
 
 export class AdminPlacesService {
   constructor(private readonly client: SupabaseClient = createServiceRoleSupabaseClient()) {}
 
-  async getPlaces(): Promise<AdminPlaceRow[]> {
-    const { data, error } = await this.client
-      .from("places")
-      .select(adminPlaceFields)
-      .order("updated_at", { ascending: false });
-    if (error) throw new AdminPlaceError("Could not load Places.");
-    return (data ?? []) as AdminPlaceRow[];
+  async getPlaces(): Promise<AdminPlaceListItem[]> {
+    const [placeResult, eventCounts] = await Promise.all([
+      this.client
+        .from("places")
+        .select(adminPlaceFields)
+        .order("updated_at", { ascending: false }),
+      this.getLinkedEventCounts(),
+    ]);
+    if (placeResult.error) throw new AdminPlaceError("Could not load Places.");
+    return ((placeResult.data ?? []) as AdminPlaceRow[]).map((place) => ({
+      ...place,
+      linkedEventCount: eventCounts.get(place.id) ?? 0,
+    }));
   }
 
   async getPlace(id: string): Promise<AdminPlaceRow | null> {
@@ -250,6 +259,15 @@ export class AdminPlacesService {
       .order("name", { ascending: true });
     if (error) throw new AdminPlaceError("Could not load Place options.");
     return (data ?? []) as PlaceOption[];
+  }
+
+  async getMatchOptions(): Promise<PlaceMatchOption[]> {
+    const { data, error } = await this.client
+      .from("places")
+      .select("id,name,address,place_type,publication_status")
+      .order("name", { ascending: true });
+    if (error) throw new AdminPlaceError("Could not load Place matching options.");
+    return (data ?? []) as PlaceMatchOption[];
   }
 
   async save(
@@ -296,5 +314,23 @@ export class AdminPlacesService {
       );
     }
     return data as AdminPlaceRow;
+  }
+
+  private async getLinkedEventCounts(): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    for (let from = 0; ; from += LINK_COUNT_PAGE_SIZE) {
+      const { data, error } = await this.client
+        .from("events")
+        .select("place_id")
+        .not("place_id", "is", null)
+        .range(from, from + LINK_COUNT_PAGE_SIZE - 1);
+      if (error) throw new AdminPlaceError("Could not load Place Event counts.");
+      const page = (data ?? []) as Array<{ place_id: string | null }>;
+      for (const event of page) {
+        if (event.place_id) counts.set(event.place_id, (counts.get(event.place_id) ?? 0) + 1);
+      }
+      if (page.length < LINK_COUNT_PAGE_SIZE) break;
+    }
+    return counts;
   }
 }
