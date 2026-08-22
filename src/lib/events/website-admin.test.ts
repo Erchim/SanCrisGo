@@ -63,6 +63,29 @@ describe("website event admin", () => {
     expect(draft.contactPhone).toBe("+52 967 123 4567");
   });
 
+  it("keeps an optional structured Place link", () => {
+    const placeId = "313e4cf0-0a68-4df8-a3f5-f9d982832421";
+    const draft = parseEventDraftForm(form({
+      title: "Museum concert",
+      starts_on: "2026-08-20",
+      place_id: placeId,
+      venue_name: "Museum courtyard",
+      address: "Centro",
+    }), candidateId);
+
+    expect(draft.placeId).toBe(placeId);
+    expect(draft.venueName).toBe("Museum courtyard");
+    expect(draft.address).toBe("Centro");
+  });
+
+  it("rejects a manually entered invalid Place identifier", () => {
+    expect(() => parseEventDraftForm(form({
+      title: "Museum concert",
+      starts_on: "2026-08-20",
+      place_id: "not-a-uuid",
+    }), candidateId)).toThrow("Selected Place is invalid");
+  });
+
   it("rejects an end time when the start time is unknown", () => {
     expect(() => parseEventDraftForm(form({
       title: "Incomplete event",

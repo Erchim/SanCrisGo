@@ -68,11 +68,14 @@ export default async function AdminEventsPage({ searchParams }: Props) {
             Review WhatsApp candidates here without changing their Instagram status.
           </p>
         </div>
-        <form action={signOut}>
-          <button className="admin-secondary-button" type="submit">
-            Sign out{admin.displayName ? ` · ${admin.displayName}` : ""}
-          </button>
-        </form>
+        <div className="admin-heading-actions">
+          <Link className="admin-secondary-link" href="/admin/places">Places</Link>
+          <form action={signOut}>
+            <button className="admin-secondary-button" type="submit">
+              Sign out{admin.displayName ? ` · ${admin.displayName}` : ""}
+            </button>
+          </form>
+        </div>
       </header>
 
       {status === "published" && <p className="admin-success">Event published on the website.</p>}

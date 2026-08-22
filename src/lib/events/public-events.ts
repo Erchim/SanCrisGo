@@ -49,6 +49,7 @@ export type PublicEvent = PublicEventListItem & {
   seo_description: string | null;
   source_url: string | null;
   contact_phone: string | null;
+  place: { id: string; name: string; slug: string } | null;
   media: Array<{
     url: string;
     altText: string | null;
@@ -70,6 +71,7 @@ type EventDetailRow = EventListRow & {
   seo_description: string | null;
   source_url: string | null;
   contact_phone: string | null;
+  places: { id: string; name: string; slug: string } | Array<{ id: string; name: string; slug: string }> | null;
   event_media: Array<{
     storage_path: string;
     alt_text: string | null;
@@ -119,6 +121,7 @@ export async function getPublishedEvents(
   selection: EventDateSelection,
   locale: Locale = "en",
   limit?: number,
+  placeId?: string,
 ): Promise<PublicEventListItem[]> {
   const startDate = selectionDate(selection.start);
   const endDate = selection.end ? selectionDate(selection.end) : null;
@@ -130,6 +133,7 @@ export async function getPublishedEvents(
     if (locale === "es") {
       query = query.or("title_es.not.is.null,source_language.ilike.es,source_language.ilike.es-%");
     }
+    if (placeId) query = query.eq("place_id", placeId);
     return query;
   };
 
@@ -168,7 +172,7 @@ export function getUpcomingPublishedEvents(
 const getPublishedEventRow = cache(async (slug: string): Promise<EventDetailRow | null> => {
   const { data, error } = await createPublicSupabaseClient()
     .from("events")
-    .select(`${listFields},description,description_es,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,contact_phone,event_media(storage_path,alt_text,sort_order)`)
+    .select(`${listFields},description,description_es,ticket_url,organizer_name,organizer_url,seo_title,seo_description,source_url,contact_phone,places!events_place_id_fkey(id,name,slug),event_media(storage_path,alt_text,sort_order)`)
     .eq("slug", slug)
     .eq("publication_status", "published")
     .order("sort_order", { referencedTable: "event_media", ascending: true })
@@ -203,6 +207,7 @@ export const getPublishedEvent = cache(async (
     seo_description: row.seo_description,
     source_url: row.source_url,
     contact_phone: row.contact_phone,
+    place: Array.isArray(row.places) ? row.places[0] ?? null : row.places,
     media: row.event_media.map((media) => ({
       url: getPublicEventMediaUrl(media.storage_path) ?? "",
       altText: media.alt_text,
@@ -226,4 +231,16 @@ export async function getPublishedEventsForSitemap(): Promise<
     updated_at: event.updated_at,
     hasSpanish: hasUsableSpanishEvent(event),
   }));
+}
+
+export function getUpcomingPublishedEventsForPlace(
+  placeId: string,
+  limit = 6,
+): Promise<PublicEventListItem[]> {
+  return getPublishedEvents(
+    resolveEventDateSelection(undefined, undefined, new Date(), "en"),
+    "en",
+    limit,
+    placeId,
+  );
 }

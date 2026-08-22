@@ -160,6 +160,7 @@ p, li { line-height: 1.65; }
 .event-details h2 { margin: 0 0 0.65rem; color: #176545; font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
 .event-details p { margin: 0; }
 .event-details p + p { margin-top: 0.25rem; }
+.place-language-note { display: block; margin-top: 0.25rem; color: var(--muted); font-weight: 400; }
 .event-recurrence-detail { color: #43534c; }
 .event-description { margin-top: clamp(2.5rem, 7vw, 4rem); }
 .event-description h2 { font-size: clamp(1.6rem, 5vw, 2rem); }
@@ -195,6 +196,17 @@ p, li { line-height: 1.65; }
 .admin-text-button { padding: 0; border: 0; background: transparent; color: #65716c; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
 .admin-secondary-button { border: 1px solid #aab6af !important; background: #fff !important; color: #35443d !important; }
 .admin-secondary-button:hover { border-color: #176545 !important; color: #176545 !important; }
+.admin-heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
+.admin-heading-actions .primary-link { margin: 0; }
+.admin-secondary-link { padding: 0.65rem 0.85rem; border: 1px solid #aab6af; border-radius: 0.4rem; background: #fff; color: #35443d; font-weight: 700; text-decoration: none; }
+.admin-secondary-link:hover { border-color: var(--green); color: var(--green); }
+.admin-place-list { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.admin-place-list > li { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 0.75rem; background: #fff; }
+.admin-place-list h2 { margin: 0; font-size: 1.35rem; }
+.admin-place-list p { margin: 0.35rem 0 0; color: var(--muted); }
+.admin-place-list .event-type { margin: 0 0 0.25rem; }
+.admin-place-status { display: grid; flex: none; justify-items: end; gap: 0.3rem; color: var(--muted); font-size: 0.78rem; }
+.admin-place-status span { padding: 0.25rem 0.5rem; border: 1px solid rgba(23, 74, 50, 0.25); border-radius: 999px; color: var(--forest); font-weight: 750; text-transform: capitalize; }
 .admin-source-panel { margin-bottom: 2.5rem; padding: 1.25rem; border: 1px solid #dedbd1; border-radius: 0.75rem; background: #f5f3ed; }
 .admin-source-panel h2 { margin-top: 0; }
 .admin-source-panel > p:not(.admin-candidate-meta) { white-space: pre-line; }
@@ -254,6 +266,34 @@ p, li { line-height: 1.65; }
 .taxi-use-list li { padding: 1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: rgba(255, 249, 238, 0.52); color: #35443d; }
 .taxi-note { margin-top: clamp(2.5rem, 7vw, 4rem); border-left: 0.25rem solid var(--terracotta); background: rgba(239, 198, 145, 0.2); }
 .taxi-related-link { margin-top: 2rem; font-weight: 700; }
+.places-index, .place-article { max-width: 68rem; margin-inline: auto; }
+.places-empty { max-width: 40rem; padding: 1.5rem; border: 1px dashed #bfc7c2; border-radius: 0.75rem; background: rgba(255, 249, 238, 0.55); }
+.places-empty h2 { margin-top: 0; }
+.places-empty p { margin-bottom: 0; color: var(--muted); }
+.place-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.place-card { border: 1px solid var(--line); border-radius: 0.85rem; background: var(--cream); }
+.place-card article { height: 100%; padding: 1.25rem; }
+.place-card h2 { margin: 0; font-size: 1.5rem; }
+.place-card p { color: #43534c; }
+.place-card-location { margin-bottom: 0; color: var(--muted) !important; font-size: 0.85rem; }
+.place-article { max-width: 58rem; }
+.place-article-header { max-width: 48rem; padding-bottom: clamp(2rem, 6vw, 3rem); border-bottom: 1px solid var(--line); }
+.place-practical-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.place-practical-grid section { padding: 1.25rem; border: 1px solid var(--line); border-radius: 0.75rem; background: #fff; }
+.place-practical-grid h2 { margin: 0 0 0.75rem; color: var(--green); font-family: inherit; font-size: 0.78rem; letter-spacing: 0.09em; text-transform: uppercase; }
+.place-practical-grid p { margin: 0.25rem 0; }
+.place-link-list { margin: 0; padding: 0; list-style: none; }
+.place-link-list li + li { margin-top: 0.35rem; }
+.place-description { max-width: 46rem; margin-top: clamp(2.5rem, 7vw, 4rem); }
+.place-description h2 { font-size: clamp(1.6rem, 5vw, 2rem); }
+.place-description p { font-size: 1.0625rem; white-space: pre-line; }
+.place-verification { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; margin-top: 2rem; padding: 0.9rem 1rem; border-left: 0.2rem solid var(--terracotta); background: rgba(239, 198, 145, 0.16); color: var(--muted); font-size: 0.84rem; }
+.place-verification p { margin: 0; }
+.place-related-section { margin-top: clamp(3.5rem, 8vw, 5rem); padding-top: 2rem; border-top: 1px solid var(--line); }
+.place-guide-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.place-guide-list li { padding: 1.2rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--cream); }
+.place-guide-list h3 { margin: 0; font-size: 1.35rem; }
+.place-guide-list p:last-child { margin-bottom: 0; color: #43534c; }
 .site-footer { border-top: 0.35rem solid var(--terracotta); background: var(--forest); }
 .site-footer > div { display: flex; width: min(100% - 2rem, 72rem); min-height: 6rem; align-items: center; justify-content: space-between; gap: 1.5rem; margin-inline: auto; }
 .site-footer p { display: grid; gap: 0.15rem; margin: 0; color: rgba(255, 249, 238, 0.78); font-size: 0.88rem; }
@@ -273,6 +313,9 @@ p, li { line-height: 1.65; }
   .event-gallery { grid-template-columns: 1fr; }
   .event-gallery figure:first-child:nth-last-child(odd) { grid-column: auto; }
   .admin-heading, .admin-editor-heading { flex-direction: column; }
+  .admin-heading-actions { width: 100%; justify-content: flex-start; }
+  .admin-place-list > li { align-items: start; flex-direction: column; }
+  .admin-place-status { justify-items: start; }
   .admin-ai-panel { align-items: stretch; flex-direction: column; }
   .admin-ai-action { justify-items: stretch; }
   .admin-ai-progress { max-width: none; text-align: left; }

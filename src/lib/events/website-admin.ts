@@ -17,6 +17,7 @@ import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 
 const CLOSED_CANDIDATE_STATUSES = ["pending", "approved", "rejected"];
 const QUEUE_LIMIT = 200;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type WebsiteQueueState = "unreviewed" | "draft" | "published" | "skipped";
 
@@ -78,6 +79,7 @@ export type EventDraftRow = {
   summary_es: string | null;
   description: string | null;
   description_es: string | null;
+  place_id: string | null;
   venue_name: string | null;
   address: string | null;
   starts_on: string;
@@ -126,6 +128,7 @@ export type EventDraftInput = {
   summaryEs: string | null;
   description: string | null;
   descriptionEs: string | null;
+  placeId: string | null;
   venueName: string | null;
   address: string | null;
   startsOn: string;
@@ -258,6 +261,10 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
   if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(language)) {
     throw new EventWebsiteAdminError("Source language is invalid.");
   }
+  const placeId = optionalText(formData.get("place_id"));
+  if (placeId && !UUID_PATTERN.test(placeId)) {
+    throw new EventWebsiteAdminError("Selected Place is invalid.");
+  }
 
   return {
     title,
@@ -268,6 +275,7 @@ export function parseEventDraftForm(formData: FormData, candidateId: string): Ev
     summaryEs: optionalText(formData.get("summary_es")),
     description: optionalText(formData.get("description")),
     descriptionEs: optionalText(formData.get("description_es")),
+    placeId,
     venueName: optionalText(formData.get("venue_name")),
     address: optionalText(formData.get("address")),
     startsOn,
@@ -421,7 +429,7 @@ export class EventWebsiteAdminService {
     if (publication?.event_id) {
       const { data: eventData, error: eventError } = await this.client
         .from("events")
-        .select("id,title,title_es,slug,event_type,summary,summary_es,description,description_es,venue_name,address,starts_on,starts_at,ends_on,ends_at,recurrence_frequency,recurrence_until,price_text,price_text_es,contact_phone,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
+        .select("id,title,title_es,slug,event_type,summary,summary_es,description,description_es,place_id,venue_name,address,starts_on,starts_at,ends_on,ends_at,recurrence_frequency,recurrence_until,price_text,price_text_es,contact_phone,ticket_url,organizer_name,organizer_url,source_url,source_language,publication_status")
         .eq("id", publication.event_id)
         .maybeSingle();
       if (eventError) throw new EventWebsiteAdminError("Could not load the website event draft.");
@@ -540,6 +548,7 @@ export class EventWebsiteAdminService {
       summary_es: input.summaryEs,
       description: input.description,
       description_es: input.descriptionEs,
+      place_id: input.placeId,
       venue_name: input.venueName,
       address: input.address,
       starts_on: input.startsOn,
