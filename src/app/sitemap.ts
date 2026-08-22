@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const homeUrl = getAbsoluteUrl("/");
   const eventsUrl = getAbsoluteUrl("/events");
+  const taxiUrl = getAbsoluteUrl("/taxi");
   const guidesUrl = getAbsoluteUrl("/guides");
-  if (!homeUrl || !eventsUrl || !guidesUrl) return [];
+  if (!homeUrl || !eventsUrl || !taxiUrl || !guidesUrl) return [];
 
   const [events, guides] = await Promise.all([
     getPublishedEventsForSitemap(),
@@ -19,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: homeUrl },
     { url: eventsUrl },
+    { url: taxiUrl },
     { url: guidesUrl },
     ...events.map((event) => ({
       url: getAbsoluteUrl(`/events/${event.slug}`) as string,

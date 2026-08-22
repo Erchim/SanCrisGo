@@ -6,9 +6,7 @@ import { getLatestPublishedGuides } from "@/lib/guides";
 import { getAbsoluteUrl } from "@/lib/site-url";
 import {
   getGuideCardImage,
-  highlandMistBackground,
   homeHeroImage,
-  stuccoArchesBackground,
 } from "@/lib/site-images";
 
 export const dynamic = "force-dynamic";
@@ -51,15 +49,41 @@ export default async function Home() {
       <section className="home-hero">
         <div className="home-hero-copy">
           <p className="eyebrow">San Cristóbal, made easier</p>
-          <h1>Local guides and events for San Cristóbal de las Casas</h1>
+          <h1>Local guides, events and practical help in San Cristóbal</h1>
           <p className="lede">
             Practical, locally focused information for finding your way, planning
             the day, and seeing what is happening around the city.
           </p>
-          <div className="home-hero-actions">
-            <Link className="primary-link" href="/events">See upcoming events</Link>
-            <Link className="secondary-link" href="/guides">Explore the guides</Link>
-          </div>
+          <section className="home-quick-access" aria-labelledby="quick-access-heading">
+            <header>
+              <h2 id="quick-access-heading">Find what you need</h2>
+            </header>
+            <nav aria-label="Quick access">
+              <ul className="home-quick-grid">
+                <li>
+                  <Link className="home-quick-tile home-quick-tile-primary" href="/events">
+                    <span className="home-quick-label">Events</span>
+                    <span>See what&apos;s happening in San Cristóbal.</span>
+                    <span aria-hidden="true" className="home-quick-arrow">→</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link className="home-quick-tile home-quick-tile-primary" href="/taxi">
+                    <span className="home-quick-label">Taxi</span>
+                    <span>Contact a local driver on WhatsApp.</span>
+                    <span aria-hidden="true" className="home-quick-arrow">→</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link className="home-quick-tile" href="/guides">
+                    <span className="home-quick-label">Guides</span>
+                    <span>Practical local information for your stay.</span>
+                    <span aria-hidden="true" className="home-quick-arrow">→</span>
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </section>
         </div>
         <figure className="home-hero-visual">
           <Image
@@ -74,45 +98,6 @@ export default async function Home() {
             Photo: Adam Jones · <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>
           </figcaption>
         </figure>
-      </section>
-
-      <section className="home-paths" aria-labelledby="home-paths-heading">
-        <header className="section-heading">
-          <div>
-            <p className="eyebrow">Choose your next step</p>
-            <h2 id="home-paths-heading">Start with what you need today</h2>
-          </div>
-        </header>
-        <div className="home-path-grid">
-          <Link className="home-path-card home-path-events" href="/events">
-            <Image
-              alt={stuccoArchesBackground.alt.en}
-              aria-hidden="true"
-              fill
-              sizes="(max-width: 44rem) 100vw, 50vw"
-              src={stuccoArchesBackground.src}
-            />
-            <span className="home-path-content">
-              <span className="eyebrow">Events</span>
-              <strong>See what&apos;s happening</strong>
-              <span>Browse today, tomorrow, this weekend, or any date.</span>
-            </span>
-          </Link>
-          <Link className="home-path-card home-path-guides" href="/guides">
-            <Image
-              alt={highlandMistBackground.alt.en}
-              aria-hidden="true"
-              fill
-              sizes="(max-width: 44rem) 100vw, 50vw"
-              src={highlandMistBackground.src}
-            />
-            <span className="home-path-content">
-              <span className="eyebrow">Guides</span>
-              <strong>Plan with local context</strong>
-              <span>Use practical answers built for real decisions in and around the city.</span>
-            </span>
-          </Link>
-        </div>
       </section>
 
       <section className="latest-guides" aria-labelledby="latest-guides-heading">
