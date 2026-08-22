@@ -52,6 +52,7 @@ p, li { line-height: 1.65; }
 .home-quick-label { color: var(--forest); font-family: var(--display-font); font-size: clamp(1.35rem, 4vw, 1.7rem); font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
 .home-quick-tile > span:nth-child(2) { padding-right: 1.2rem; font-size: 0.84rem; line-height: 1.45; }
 .home-quick-arrow { position: absolute; right: 0.9rem; bottom: 0.75rem; color: var(--terracotta); font-size: 1.2rem; font-weight: 700; }
+.home-upcoming-events { margin-top: clamp(3.5rem, 8vw, 6rem); }
 .latest-guides { margin-top: clamp(3.5rem, 8vw, 6rem); padding-top: clamp(2rem, 6vw, 3rem); border-top: 1px solid #dedbd1; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.5rem; }
 .section-heading h2 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.4rem); }
@@ -125,9 +126,9 @@ p, li { line-height: 1.65; }
 .event-card-date span { color: #65716c; font-size: 0.78rem; font-weight: 600; }
 .event-card-content { display: flex; flex: 1; flex-direction: column; padding: 0.7rem; }
 .event-card .event-type { margin-bottom: 0.4rem; font-size: 0.66rem; }
-.event-card h2 { display: -webkit-box; overflow: hidden; margin: 0; font-size: 1.05rem; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-.event-card h2 a { color: #17251f; text-decoration-color: #91b4a5; text-decoration-thickness: 0.08em; }
-.event-card h2 a:hover { color: #176545; text-decoration-color: currentColor; }
+.event-card h2, .event-card h3 { display: -webkit-box; overflow: hidden; margin: 0; font-size: 1.05rem; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.event-card h2 a, .event-card h3 a { color: #17251f; text-decoration-color: #91b4a5; text-decoration-thickness: 0.08em; }
+.event-card h2 a:hover, .event-card h3 a:hover { color: #176545; text-decoration-color: currentColor; }
 .event-summary { display: none; overflow: hidden; margin-block: 0.75rem; color: #43534c; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .event-venue, .event-price { display: -webkit-box; overflow: hidden; margin: 0.5rem 0 0; color: #65716c; font-size: 0.78rem; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .event-price { color: #35443d; font-weight: 700; }
@@ -282,7 +283,7 @@ p, li { line-height: 1.65; }
   .event-card-date { padding: 0.75rem 0.9rem; }
   .event-card-content { padding: 0.95rem; }
   .event-card .event-type { font-size: 0.72rem; }
-  .event-card h2 { font-size: 1.3rem; }
+  .event-card h2, .event-card h3 { font-size: 1.3rem; }
   .event-summary { display: -webkit-box; }
   .event-venue, .event-price { font-size: 0.86rem; }
 }
