@@ -4,7 +4,7 @@
 
 SanCrisGo is a live local city portal for San Cristóbal de las Casas, Chiapas. It serves visitors and residents with trustworthy, interconnected local information and useful next actions. Organic search is the primary acquisition channel, so public pages require stable URLs, complete server-rendered HTML, clear search intent, and strong internal linking.
 
-The current public product includes Events, English Guides, Taxi, and the first structured Places foundation. Staff can maintain verified Places, connect Events to them, and publish useful Place detail pages; this does not imply a large public Places inventory yet. Events support verified one-time and simple weekly schedules without duplicating the underlying series. The information model connects Places, Events, and Guides, with user-facing discovery layers such as Things to do, Food, Stay, and Learn, plus contextual utilities/actions such as Taxi. A visible discovery section does not automatically require a separate database entity.
+The current public product includes Events, English Guides, Taxi, and the first structured Places foundation. Staff can maintain verified Places, derive reviewed Place drafts from existing Event venue data, connect Events to them, and publish useful Place detail pages; this does not imply a large public Places inventory yet. Events support verified one-time and simple weekly schedules without duplicating the underlying series. The information model connects Places, Events, and Guides, with user-facing discovery layers such as Things to do, Food, Stay, and Learn, plus contextual utilities/actions such as Taxi. A visible discovery section does not automatically require a separate database entity.
 
 ## Production architecture
 

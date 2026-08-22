@@ -79,6 +79,9 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
   const ticketUrl = event ? event.ticket_url ?? "" : prefill?.ticket_url ?? "";
   const organizerName = event ? event.organizer_name ?? "" : prefill?.organizer_name ?? "";
   const organizerUrl = event ? event.organizer_url ?? "" : prefill?.organizer_url ?? "";
+  const linkedPlace = event?.place_id
+    ? placeOptions.find((place) => place.id === event.place_id) ?? null
+    : null;
   const status = single(query.status);
   const error = single(query.error);
 
@@ -236,6 +239,19 @@ export default async function AdminEventEditorPage({ params, searchParams }: Pro
               ))}
             </select>
             <small>Venue and address remain available as public fallback text.</small>
+            {linkedPlace && (
+              <Link className="admin-inline-action" href={`/admin/places/${linkedPlace.id}`}>
+                Review linked Place: {linkedPlace.name}
+              </Link>
+            )}
+            {event && !event.place_id && venueName && (
+              <Link
+                className="admin-inline-action"
+                href={`/admin/places/venues?focus=${encodeURIComponent(event.slug)}`}
+              >
+                Link/create Place from this venue
+              </Link>
+            )}
           </label>
           <label>
             Venue
